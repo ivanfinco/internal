@@ -52,7 +52,7 @@ export default function Header({
   const displayCarb = Math.round((safeMacros.carbs || 0) * 10) / 10;
 
   return (
-    <header className="sticky top-0 z-40 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl border-b border-zinc-200/80 dark:border-zinc-800/80 transition-colors">
+    <header className="sticky top-0 z-40 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl border-b border-zinc-200/80 dark:border-zinc-800/80 transition-colors w-full max-w-full overflow-hidden">
       
       {/* Top Header & Quick Profile Info */}
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pt-3 pb-2.5 flex flex-wrap items-center justify-between gap-3 sm:gap-4">
@@ -156,7 +156,7 @@ export default function Header({
 
       {/* Live Macros & Micronutrients Bar */}
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2 border-t border-b border-zinc-100 dark:border-zinc-800/60 bg-zinc-50/50 dark:bg-zinc-950/40">
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 text-xs">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
           
           {/* Calorie Counter */}
           <div className="bg-white dark:bg-zinc-800/60 p-2 rounded-2xl border border-zinc-200/60 dark:border-zinc-700/50 shadow-xs">
