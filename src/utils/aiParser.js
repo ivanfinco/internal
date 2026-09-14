@@ -202,22 +202,27 @@ async function callGeminiApi(userText, currentLogs, timestamp, lang = 'IT') {
   const prompt = `Sei l'AI Assistant personale di Ivan per Nutrizione (Food), Allenamento (Training), Trading e Archivio Storico.
 ${langInstruction}
 
-Analizza la richiesta dell'utente Ivan e restituisci UNICAMENTE un oggetto JSON valido (senza tag o markdown al di fuori del JSON).
+Analizza la richiesta dell'utente Ivan e restituisci UNICAMENTE un oggetto JSON valido.
+
+SE È TRADING (Trading):
+{
+  "category": "trading",
+  "type": "log_entry",
+  "log": {
+    "ticker": "BTC/USDT",
+    "type": "BUY" | "SELL",
+    "entryPrice": 62500,
+    "takeProfit": 66000,
+    "stopLoss": 60000,
+    "size": "1 Posizione",
+    "status": "APERTO" | "CHIUSO",
+    "notes": "note",
+    "pnl": "0.0%"
+  },
+  "message": "✅ **Trade registrato con Gemini AI!**\\n\\n..."
+}
 
 SE È CIBO (Food):
-Calcola in modo ESTREMAMENTE ACCURATO e SCIENTIFICO (basato su banche dati nutrizionali ufficiali USDA/INRAN) le calorie, i macronutrienti ed i 8 micronutrienti essenziali:
-- vitaminA (mcg)
-- vitaminC (mg)
-- vitaminD (mcg)
-- iron (mg)
-- calcium (mg)
-- zinc (mg)
-- magnesium (mg)
-- potassium (mg)
-
-Fornisci ANCHE la scomposizione esatta per ciascun ingrediente citato nel pasto (es. "Pasta 100g", "Grana 20g", "Petto di pollo 200g").
-
-Schema JSON Cibo:
 {
   "category": "food",
   "type": "log_entry",
@@ -231,18 +236,9 @@ Schema JSON Cibo:
     "micros": {
       "vitaminA": 120, "vitaminC": 30, "vitaminD": 2, "iron": 3.5, "calcium": 150, "zinc": 2.5, "magnesium": 65, "potassium": 500
     },
-    "ingredientsBreakdown": [
-      {
-        "name": "Ingredient Name (Weight)",
-        "calories": 300,
-        "protein": 30,
-        "fats": 5,
-        "carbs": 40,
-        "micros": { "vitaminA": 100, "vitaminC": 20, "vitaminD": 0, "iron": 2, "calcium": 80, "zinc": 1.5, "magnesium": 40, "potassium": 300 }
-      }
-    ]
+    "ingredientsBreakdown": [...]
   },
-  "message": "${lang === 'EN' ? '✅ **Food logged with Gemini AI!**' : '✅ **Cibo registrato con Gemini AI!**'}\\n\\n..."
+  "message": "..."
 }
 
 Richiesta dell'utente Ivan: "${userText}"`;
@@ -251,17 +247,68 @@ Richiesta dell'utente Ivan: "${userText}"`;
   const cleanJson = replyText.replace(/```json/g, '').replace(/```/g, '').trim();
   const parsed = JSON.parse(cleanJson);
 
-  if (parsed.log) {
-    parsed.log.id = (parsed.category === 'food' ? 'f_' : parsed.category === 'training' ? 't_' : 'tr_') + Date.now();
-    parsed.log.timestamp = timestamp;
-    parsed.log.mealType = detectedType;
+  // Normalize parsed response guaranteed
+  const category = parsed.category || (parsed.ticker || (parsed.log && parsed.log.ticker) ? 'trading' : 'food');
+  let rawLog = parsed.log || parsed;
+
+  const finalLog = {
+    id: (category === 'food' ? 'f_' : category === 'training' ? 't_' : 'tr_') + Date.now(),
+    timestamp,
+    ...rawLog
+  };
+
+  if (category === 'food') {
+    finalLog.mealType = detectedType;
   }
 
-  return parsed;
+  return {
+    type: 'log_entry',
+    category,
+    log: finalLog,
+    message: parsed.message || `✅ **Operazione registrata!**`
+  };
 }
 
 function fallbackLocalParser(text, timestamp, lang = 'IT') {
   const isEn = lang === 'EN';
+  const lower = text.toLowerCase();
+
+  // Check if trading prompt
+  const isTrading = lower.includes('trading') || lower.includes('buy') || lower.includes('sell') || lower.includes('btc') || lower.includes('eth') || lower.includes('crypto') || lower.includes('trade');
+
+  if (isTrading) {
+    const tickerMatch = text.match(/(btc|eth|sol|nvda|aapl|eurusd|usdt)/i);
+    const priceMatch = text.match(/(\d{4,6})/);
+
+    const ticker = tickerMatch ? tickerMatch[1].toUpperCase() + '/USDT' : 'BTC/USDT';
+    const entryPrice = priceMatch ? parseInt(priceMatch[1], 10) : 62500;
+    const type = lower.includes('sell') || lower.includes('short') ? 'SELL' : 'BUY';
+
+    const tradeLog = {
+      id: 'tr_' + Date.now(),
+      timestamp,
+      ticker,
+      type,
+      entryPrice,
+      takeProfit: type === 'BUY' ? Math.round(entryPrice * 1.05) : Math.round(entryPrice * 0.95),
+      stopLoss: type === 'BUY' ? Math.round(entryPrice * 0.96) : Math.round(entryPrice * 1.04),
+      size: '1 Posizione',
+      status: 'APERTO',
+      notes: text,
+      pnl: '0.0%'
+    };
+
+    return {
+      type: 'log_entry',
+      category: 'trading',
+      log: tradeLog,
+      message: isEn 
+        ? `✅ **Trade logged!**\n\n📈 **Asset**: ${ticker} (${type})\n💵 **Entry**: $${entryPrice.toLocaleString()}\n🎯 **TP**: $${tradeLog.takeProfit.toLocaleString()} | 🛑 **SL**: $${tradeLog.stopLoss.toLocaleString()}`
+        : `✅ **Trade registrato!**\n\n📈 **Asset**: ${ticker} (${type})\n💵 **Entry**: $${entryPrice.toLocaleString()}\n🎯 **TP**: $${tradeLog.takeProfit.toLocaleString()} | 🛑 **SL**: $${tradeLog.stopLoss.toLocaleString()}`
+    };
+  }
+
+  // Food Fallback
   const breakdown = parseScientificBreakdown(text);
   const detectedType = detectMealType(text, timestamp);
 

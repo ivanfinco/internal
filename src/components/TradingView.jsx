@@ -84,6 +84,7 @@ export default function TradingView({ tradingLogs = [], onAddTradingLog, onDelet
       pnl: '0.0%'
     };
 
+    setSelectedDate(null);
     onAddTradingLog(newLog);
     setShowAddModal(false);
   };
@@ -164,7 +165,7 @@ export default function TradingView({ tradingLogs = [], onAddTradingLog, onDelet
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 pb-12">
+    <div className="max-w-6xl mx-auto space-y-6 pb-12">
       
       {/* Header Banner */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 rounded-3xl shadow-sm">
@@ -188,13 +189,20 @@ export default function TradingView({ tradingLogs = [], onAddTradingLog, onDelet
         </button>
       </div>
 
-      {/* Real Interactive Calendar Component */}
-      <RealCalendar
-        selectedDate={selectedDate}
-        onSelectDate={setSelectedDate}
-        section="trading"
-        logs={{ trading: safeLogs }}
-      />
+      {/* Performance Recap Bar */}
+      <div className="p-4 bg-zinc-900 border border-purple-500/40 rounded-2xl text-xs font-mono text-zinc-300 flex flex-wrap items-center justify-between gap-3 shadow-md">
+        <div className="flex items-center gap-2">
+          <Zap className="w-4 h-4 text-amber-400" />
+          <span className="font-bold text-white font-sans text-sm">Recap Prestazioni Trading:</span>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-4 text-xs font-bold">
+          <div>📊 Posizioni: <strong className="text-white font-mono">{totalTradesCount}</strong></div>
+          <div>🎯 Win Rate: <strong className="text-emerald-400 font-mono">{realWinRate}%</strong></div>
+          <div>🏆 Profit Factor: <strong className="text-indigo-300 font-mono">{realProfitFactor}</strong></div>
+          <div>💰 PnL Netto: <strong className={totalPnlVal >= 0 ? "text-emerald-400 font-mono" : "text-rose-400 font-mono"}>{realPnlDisplay}</strong></div>
+        </div>
+      </div>
 
       {/* Real Summary KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -271,32 +279,28 @@ export default function TradingView({ tradingLogs = [], onAddTradingLog, onDelet
 
       </div>
 
-      {/* Performance Recap Bar */}
-      <div className="p-4 bg-zinc-900 border border-purple-500/30 rounded-2xl text-xs font-mono text-zinc-300 flex flex-wrap items-center justify-between gap-3 shadow-sm">
-        <div className="flex items-center gap-2">
-          <Zap className="w-4 h-4 text-amber-400" />
-          <span className="font-bold text-white font-sans">Recap Prestazioni Trading:</span>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-4 text-[11px]">
-          <div>📊 Posizioni: <strong className="text-white">{totalTradesCount}</strong></div>
-          <div>🎯 Win Rate: <strong className="text-emerald-400">{realWinRate}%</strong></div>
-          <div>🏆 Profit Factor: <strong className="text-indigo-300">{realProfitFactor}</strong></div>
-          <div>💰 PnL Netto: <strong className={totalPnlVal >= 0 ? "text-emerald-400" : "text-rose-400"}>{realPnlDisplay}</strong></div>
-        </div>
-      </div>
+      {/* Real Interactive Calendar Component */}
+      <RealCalendar
+        selectedDate={selectedDate}
+        onSelectDate={setSelectedDate}
+        section="trading"
+        logs={{ trading: safeLogs }}
+      />
 
       {/* Trades Table */}
       <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 shadow-sm overflow-hidden">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold text-zinc-900 dark:text-white flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5 text-purple-500" /> Registro Ordini & Performance
+            <ShieldCheck className="w-5 h-5 text-purple-500" /> Registro Ordini & Performance ({filteredLogs.length})
           </h3>
 
           {selectedDate && (
-            <span className="px-3 py-1 bg-purple-500/10 text-purple-600 dark:text-purple-400 font-mono text-xs font-bold rounded-xl flex items-center gap-1">
-              <Filter className="w-3.5 h-3.5" /> Filtrato per data: {selectedDate}
-            </span>
+            <button
+              onClick={() => setSelectedDate(null)}
+              className="px-3 py-1 bg-purple-500/10 hover:bg-purple-500/20 text-purple-600 dark:text-purple-400 font-mono text-xs font-bold rounded-xl flex items-center gap-1 transition-all"
+            >
+              <Filter className="w-3.5 h-3.5" /> Filtrato: {selectedDate} (Reset)
+            </button>
           )}
         </div>
 
