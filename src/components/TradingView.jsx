@@ -3,8 +3,10 @@ import { TrendingUp, ArrowUpRight, ArrowDownRight, Clock, Plus, Trash2, Edit2, S
 import RealCalendar from './RealCalendar';
 import { parseTradeEditInstruction } from '../utils/aiParser';
 
-export default function TradingView({ tradingLogs, onAddTradingLog, onDeleteTradingLog, onUpdateTradingLog, lang = 'IT' }) {
+export default function TradingView({ tradingLogs = [], onAddTradingLog, onDeleteTradingLog, onUpdateTradingLog, lang = 'IT' }) {
   const isEn = lang === 'EN';
+  const safeLogs = Array.isArray(tradingLogs) ? tradingLogs : [];
+
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingTrade, setEditingTrade] = useState(null);
   const [selectedDate, setSelectedDate] = useState(null);
@@ -43,9 +45,9 @@ export default function TradingView({ tradingLogs, onAddTradingLog, onDeleteTrad
       timestamp,
       ticker: ticker.toUpperCase(),
       type,
-      entryPrice: Number(entryPrice),
-      takeProfit: Number(takeProfit),
-      stopLoss: Number(stopLoss),
+      entryPrice: Number(entryPrice) || 0,
+      takeProfit: Number(takeProfit) || 0,
+      stopLoss: Number(stopLoss) || 0,
       size: '1 Posizione',
       status: 'APERTO',
       notes,
@@ -59,11 +61,11 @@ export default function TradingView({ tradingLogs, onAddTradingLog, onDeleteTrad
   const handleStartEdit = (tr) => {
     setEditingTrade(tr);
     setAiEditPrompt('');
-    setEditTicker(tr.ticker);
-    setEditType(tr.type);
-    setEditEntryPrice(tr.entryPrice);
-    setEditTakeProfit(tr.takeProfit);
-    setEditStopLoss(tr.stopLoss);
+    setEditTicker(tr.ticker || '');
+    setEditType(tr.type || 'BUY');
+    setEditEntryPrice(tr.entryPrice || 0);
+    setEditTakeProfit(tr.takeProfit || 0);
+    setEditStopLoss(tr.stopLoss || 0);
     setEditStatus(tr.status || 'APERTO');
     setEditPnl(tr.pnl || '0.0%');
     setEditNotes(tr.notes || '');
@@ -87,7 +89,6 @@ export default function TradingView({ tradingLogs, onAddTradingLog, onDeleteTrad
         setEditNotes(updatedByAi.notes || editNotes);
         setAiEditPrompt('');
 
-        // Apply immediately in real-time to global app state!
         if (onUpdateTradingLog) {
           onUpdateTradingLog(updatedByAi);
         }
@@ -106,11 +107,11 @@ export default function TradingView({ tradingLogs, onAddTradingLog, onDeleteTrad
 
     const updated = {
       ...editingTrade,
-      ticker: editTicker.toUpperCase(),
+      ticker: (editTicker || '').toUpperCase(),
       type: editType,
-      entryPrice: Number(editEntryPrice),
-      takeProfit: Number(editTakeProfit),
-      stopLoss: Number(editStopLoss),
+      entryPrice: Number(editEntryPrice) || 0,
+      takeProfit: Number(editTakeProfit) || 0,
+      stopLoss: Number(editStopLoss) || 0,
       status: editStatus,
       pnl: editPnl,
       notes: editNotes
@@ -123,8 +124,14 @@ export default function TradingView({ tradingLogs, onAddTradingLog, onDeleteTrad
   };
 
   const filteredLogs = selectedDate
-    ? tradingLogs.filter(log => log.timestamp.startsWith(selectedDate))
-    : tradingLogs;
+    ? safeLogs.filter(log => log && log.timestamp && log.timestamp.startsWith(selectedDate))
+    : safeLogs;
+
+  const formatPrice = (val) => {
+    const num = Number(val);
+    if (isNaN(num)) return '$0';
+    return '$' + num.toLocaleString();
+  };
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 pb-12">
@@ -156,7 +163,7 @@ export default function TradingView({ tradingLogs, onAddTradingLog, onDeleteTrad
         selectedDate={selectedDate}
         onSelectDate={setSelectedDate}
         section="trading"
-        logs={{ trading: tradingLogs }}
+        logs={{ trading: safeLogs }}
       />
 
       {/* Summary KPI Cards */}
@@ -167,7 +174,7 @@ export default function TradingView({ tradingLogs, onAddTradingLog, onDeleteTrad
           </div>
           <div>
             <span className="text-xs text-purple-200 block uppercase font-semibold">Operazioni Loggate</span>
-            <span className="text-2xl font-extrabold font-mono">{tradingLogs.length} Posizioni</span>
+            <span className="text-2xl font-extrabold font-mono">{safeLogs.length} Posizioni</span>
           </div>
         </div>
 
@@ -206,83 +213,88 @@ export default function TradingView({ tradingLogs, onAddTradingLog, onDeleteTrad
           )}
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-zinc-200 dark:border-zinc-800 text-xs uppercase text-zinc-400 font-semibold">
-                <th className="py-3 px-4">Data / Ora</th>
-                <th className="py-3 px-4">Asset</th>
-                <th className="py-3 px-4">Tipo</th>
-                <th className="py-3 px-4">Prezzo Entry</th>
-                <th className="py-3 px-4">Take Profit</th>
-                <th className="py-3 px-4">Stop Loss</th>
-                <th className="py-3 px-4">Stato</th>
-                <th className="py-3 px-4">PnL</th>
-                <th className="py-3 px-4 text-right">Azioni</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/60 text-xs font-medium">
-              {filteredLogs.map((tr) => {
-                const isBuy = tr.type === 'BUY' || tr.type === 'LONG';
-                return (
-                  <tr key={tr.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition-all">
-                    <td className="py-4 px-4 font-mono text-zinc-400 whitespace-nowrap flex items-center gap-1.5">
-                      <Clock className="w-3.5 h-3.5 text-zinc-500" />
-                      {tr.timestamp}
-                    </td>
-                    <td className="py-4 px-4 font-bold text-zinc-900 dark:text-white font-mono">
-                      {tr.ticker}
-                    </td>
-                    <td className="py-4 px-4">
-                      <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold ${
-                        isBuy
-                          ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
-                          : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
-                      }`}>
-                        {isBuy ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-                        {tr.type}
-                      </span>
-                    </td>
-                    <td className="py-4 px-4 font-mono text-zinc-700 dark:text-zinc-300">
-                      ${tr.entryPrice.toLocaleString()}
-                    </td>
-                    <td className="py-4 px-4 font-mono text-emerald-600 dark:text-emerald-400">
-                      ${tr.takeProfit.toLocaleString()}
-                    </td>
-                    <td className="py-4 px-4 font-mono text-rose-500">
-                      ${tr.stopLoss.toLocaleString()}
-                    </td>
-                    <td className="py-4 px-4">
-                      <span className="px-2 py-0.5 text-[10px] font-semibold bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 rounded-md">
-                        {tr.status}
-                      </span>
-                    </td>
-                    <td className="py-4 px-4 font-mono font-bold text-emerald-500">
-                      {tr.pnl}
-                    </td>
-                    <td className="py-4 px-4 text-right space-x-1 whitespace-nowrap">
-                      <button
-                        onClick={() => handleStartEdit(tr)}
-                        className="px-2.5 py-1.5 text-xs font-bold text-purple-600 dark:text-purple-400 bg-purple-500/10 hover:bg-purple-500/20 rounded-xl transition-all inline-flex items-center gap-1"
-                        title="Modifica trade con Assistant AI"
-                      >
-                        <Sparkles className="w-3.5 h-3.5" />
-                        <span>Modifica AI</span>
-                      </button>
-                      <button
-                        onClick={() => onDeleteTradingLog(tr.id)}
-                        className="p-1.5 text-zinc-400 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-all"
-                        title="Elimina trade"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        {filteredLogs.length === 0 ? (
+          <p className="text-sm text-zinc-500 text-center py-8">Nessun trade registrato {selectedDate ? `il ${selectedDate}` : 'in archivio'}.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-zinc-200 dark:border-zinc-800 text-xs uppercase text-zinc-400 font-semibold">
+                  <th className="py-3 px-4">Data / Ora</th>
+                  <th className="py-3 px-4">Asset</th>
+                  <th className="py-3 px-4">Tipo</th>
+                  <th className="py-3 px-4">Prezzo Entry</th>
+                  <th className="py-3 px-4">Take Profit</th>
+                  <th className="py-3 px-4">Stop Loss</th>
+                  <th className="py-3 px-4">Stato</th>
+                  <th className="py-3 px-4">PnL</th>
+                  <th className="py-3 px-4 text-right">Azioni</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/60 text-xs font-medium">
+                {filteredLogs.map((tr) => {
+                  if (!tr) return null;
+                  const isBuy = tr.type === 'BUY' || tr.type === 'LONG';
+                  return (
+                    <tr key={tr.id || Math.random()} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition-all">
+                      <td className="py-4 px-4 font-mono text-zinc-400 whitespace-nowrap flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5 text-zinc-500" />
+                        {tr.timestamp || 'N/D'}
+                      </td>
+                      <td className="py-4 px-4 font-bold text-zinc-900 dark:text-white font-mono">
+                        {tr.ticker || 'N/D'}
+                      </td>
+                      <td className="py-4 px-4">
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold ${
+                          isBuy
+                            ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                            : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
+                        }`}>
+                          {isBuy ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+                          {tr.type || 'BUY'}
+                        </span>
+                      </td>
+                      <td className="py-4 px-4 font-mono text-zinc-700 dark:text-zinc-300">
+                        {formatPrice(tr.entryPrice || tr.entry_price)}
+                      </td>
+                      <td className="py-4 px-4 font-mono text-emerald-600 dark:text-emerald-400">
+                        {formatPrice(tr.takeProfit || tr.take_profit)}
+                      </td>
+                      <td className="py-4 px-4 font-mono text-rose-500">
+                        {formatPrice(tr.stopLoss || tr.stop_loss)}
+                      </td>
+                      <td className="py-4 px-4">
+                        <span className="px-2 py-0.5 text-[10px] font-semibold bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 rounded-md">
+                          {tr.status || 'APERTO'}
+                        </span>
+                      </td>
+                      <td className="py-4 px-4 font-mono font-bold text-emerald-500">
+                        {tr.pnl || '0.0%'}
+                      </td>
+                      <td className="py-4 px-4 text-right space-x-1 whitespace-nowrap">
+                        <button
+                          onClick={() => handleStartEdit(tr)}
+                          className="px-2.5 py-1.5 text-xs font-bold text-purple-600 dark:text-purple-400 bg-purple-500/10 hover:bg-purple-500/20 rounded-xl transition-all inline-flex items-center gap-1"
+                          title="Modifica trade con Assistant AI"
+                        >
+                          <Sparkles className="w-3.5 h-3.5" />
+                          <span>Modifica AI</span>
+                        </button>
+                        <button
+                          onClick={() => onDeleteTradingLog(tr.id)}
+                          className="p-1.5 text-zinc-400 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-all"
+                          title="Elimina trade"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Manual Add Modal */}
@@ -385,7 +397,7 @@ export default function TradingView({ tradingLogs, onAddTradingLog, onDeleteTrad
               <div>
                 <span className="text-xs font-bold text-purple-500 uppercase tracking-widest block">Assistant AI Real-time Edit</span>
                 <h3 className="text-lg font-bold text-zinc-900 dark:text-white font-mono">
-                  Modifica Trade [{editingTrade.ticker}]
+                  Modifica Trade [{editingTrade.ticker || ''}]
                 </h3>
               </div>
               <button onClick={() => setEditingTrade(null)} className="p-2 text-zinc-400 hover:text-white rounded-xl">
