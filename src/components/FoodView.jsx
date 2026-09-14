@@ -1,0 +1,808 @@
+import React, { useState } from 'react';
+import { Utensils, Flame, Plus, Award, Calendar, Clock, Trash2, PieChart, Filter, ChevronDown, ChevronUp, Info, Sparkles, Edit2, Send, X, Check, Search, BarChart3, ListFilter, AlignLeft } from 'lucide-react';
+import RealCalendar from './RealCalendar';
+import { parseFoodEditInstruction } from '../utils/aiParser';
+import { parseScientificBreakdown } from '../utils/nutritionEngine';
+
+export default function FoodView({ foodLogs, macroTotals, targets, microMedianPercent, onAddFoodLog, onDeleteFoodLog, onUpdateFoodLog, lang = 'IT' }) {
+  const isEn = lang === 'EN';
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [selectedNutrient, setSelectedNutrient] = useState('protein');
+  const [showProvenanceModal, setShowProvenanceModal] = useState(false);
+
+  const [editingFood, setEditingFood] = useState(null);
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [expandedLogId, setExpandedLogId] = useState(null);
+
+  // AI Prompt edit state
+  const [aiEditPrompt, setAiEditPrompt] = useState('');
+  const [isAiProcessing, setIsAiProcessing] = useState(false);
+
+  // Manual Add Form State
+  const [mealType, setMealType] = useState('Pranzo');
+  const [description, setDescription] = useState('');
+  const [calories, setCalories] = useState(500);
+  const [protein, setProtein] = useState(35);
+  const [fats, setFats] = useState(15);
+  const [carbs, setCarbs] = useState(55);
+
+  // Edit Modal Form State
+  const [editMealType, setEditMealType] = useState('Pranzo');
+  const [editDescription, setEditDescription] = useState('');
+  const [editCalories, setEditCalories] = useState(0);
+  const [editProtein, setEditProtein] = useState(0);
+  const [editFats, setEditFats] = useState(0);
+  const [editCarbs, setEditCarbs] = useState(0);
+  const [editMicros, setEditMicros] = useState({});
+
+  // Guarantee realistic scientific breakdown for ANY log
+  const getLogBreakdown = (log) => {
+    if (log.ingredientsBreakdown && log.ingredientsBreakdown.length > 0) {
+      // Check if breakdown was even-divided dummy data, if so recalculate with scientific engine
+      const first = log.ingredientsBreakdown[0];
+      const isEvenDummy = log.ingredientsBreakdown.length > 1 && log.ingredientsBreakdown.every(i => i.calories === first.calories && i.protein === first.protein);
+      if (!isEvenDummy) return log.ingredientsBreakdown;
+    }
+
+    return parseScientificBreakdown(log.description, log.calories, log.protein, log.fats, log.carbs, log.micros || {});
+  };
+
+  const handleManualAdd = (e) => {
+    e.preventDefault();
+    if (!description.trim()) return;
+
+    const now = new Date();
+    const timestamp = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+
+    const newLog = {
+      id: 'f_' + Date.now(),
+      timestamp,
+      mealType,
+      description,
+      calories: Number(calories),
+      protein: Number(protein),
+      fats: Number(fats),
+      carbs: Number(carbs),
+      micros: {
+        vitaminA: 200,
+        vitaminC: 30,
+        vitaminD: 2,
+        iron: 3,
+        calcium: 150,
+        zinc: 2,
+        magnesium: 50,
+        potassium: 400
+      }
+    };
+
+    newLog.ingredientsBreakdown = parseScientificBreakdown(description, calories, protein, fats, carbs, newLog.micros);
+
+    onAddFoodLog(newLog);
+    setDescription('');
+    setShowAddModal(false);
+  };
+
+  const handleStartEdit = (log) => {
+    setEditingFood(log);
+    setAiEditPrompt('');
+    setEditMealType(log.mealType || 'Pranzo');
+    setEditDescription(log.description || '');
+    setEditCalories(log.calories || 0);
+    setEditProtein(log.protein || 0);
+    setEditFats(log.fats || 0);
+    setEditCarbs(log.carbs || 0);
+    setEditMicros(log.micros || {});
+  };
+
+  const handleApplyAiEdit = async (e) => {
+    e.preventDefault();
+    if (!aiEditPrompt.trim() || !editingFood || isAiProcessing) return;
+
+    setIsAiProcessing(true);
+    try {
+      const updatedByAi = await parseFoodEditInstruction(aiEditPrompt, editingFood, lang);
+      if (updatedByAi) {
+        setEditMealType(updatedByAi.mealType || editMealType);
+        setEditDescription(updatedByAi.description || editDescription);
+        setEditCalories(updatedByAi.calories || editCalories);
+        setEditProtein(updatedByAi.protein || editProtein);
+        setEditFats(updatedByAi.fats || editFats);
+        setEditCarbs(updatedByAi.carbs || editCarbs);
+        if (updatedByAi.micros) setEditMicros(updatedByAi.micros);
+        setAiEditPrompt('');
+
+        if (onUpdateFoodLog) {
+          onUpdateFoodLog(updatedByAi);
+        }
+        setEditingFood(null);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsAiProcessing(false);
+    }
+  };
+
+  const handleSaveEdit = (e) => {
+    e.preventDefault();
+    if (!editingFood) return;
+
+    const updated = {
+      ...editingFood,
+      mealType: editMealType,
+      description: editDescription,
+      calories: Number(editCalories),
+      protein: Number(editProtein),
+      fats: Number(editFats),
+      carbs: Number(editCarbs),
+      micros: editMicros
+    };
+
+    updated.ingredientsBreakdown = parseScientificBreakdown(editDescription, editCalories, editProtein, editFats, editCarbs, editMicros);
+
+    if (onUpdateFoodLog) {
+      onUpdateFoodLog(updated);
+    }
+    setEditingFood(null);
+  };
+
+  const filteredLogs = selectedDate
+    ? foodLogs.filter(log => log.timestamp.startsWith(selectedDate))
+    : foodLogs;
+
+  const totalMicros = foodLogs.reduce((acc, log) => {
+    const m = log.micros || {};
+    return {
+      vitaminA: acc.vitaminA + (m.vitaminA || 0),
+      vitaminC: acc.vitaminC + (m.vitaminC || 0),
+      vitaminD: acc.vitaminD + (m.vitaminD || 0),
+      iron: acc.iron + (m.iron || 0),
+      calcium: acc.calcium + (m.calcium || 0),
+      zinc: acc.zinc + (m.zinc || 0),
+      magnesium: acc.magnesium + (m.magnesium || 0),
+      potassium: acc.potassium + (m.potassium || 0)
+    };
+  }, { vitaminA: 0, vitaminC: 0, vitaminD: 0, iron: 0, calcium: 0, zinc: 0, magnesium: 0, potassium: 0 });
+
+  const microList = [
+    { key: 'vitaminA', label: 'Vitamina A', val: totalMicros.vitaminA, target: targets.micros.vitaminA, unit: 'mcg' },
+    { key: 'vitaminC', label: 'Vitamina C', val: totalMicros.vitaminC, target: targets.micros.vitaminC, unit: 'mg' },
+    { key: 'vitaminD', label: 'Vitamina D', val: totalMicros.vitaminD, target: targets.micros.vitaminD, unit: 'mcg' },
+    { key: 'iron', label: 'Ferro (Fe)', val: totalMicros.iron, target: targets.micros.iron, unit: 'mg' },
+    { key: 'calcium', label: 'Calcio (Ca)', val: totalMicros.calcium, target: targets.micros.calcium, unit: 'mg' },
+    { key: 'zinc', label: 'Zinco (Zn)', val: totalMicros.zinc, target: targets.micros.zinc, unit: 'mg' },
+    { key: 'magnesium', label: 'Magnesio (Mg)', val: totalMicros.magnesium, target: targets.micros.magnesium, unit: 'mg' },
+    { key: 'potassium', label: 'Potassio (K)', val: totalMicros.potassium, target: targets.micros.potassium, unit: 'mg' }
+  ];
+
+  const getNutrientProvenance = (nutrientKey) => {
+    const provenanceList = [];
+
+    filteredLogs.forEach(log => {
+      const ingredients = getLogBreakdown(log);
+
+      ingredients.forEach(ing => {
+        let amount = 0;
+        let unit = 'g';
+
+        if (nutrientKey === 'calories') { amount = ing.calories || 0; unit = 'kcal'; }
+        else if (nutrientKey === 'protein') { amount = ing.protein || 0; unit = 'g'; }
+        else if (nutrientKey === 'carbs') { amount = ing.carbs || 0; unit = 'g'; }
+        else if (nutrientKey === 'fats') { amount = ing.fats || 0; unit = 'g'; }
+        else if (ing.micros && ing.micros[nutrientKey] !== undefined) {
+          amount = ing.micros[nutrientKey] || 0;
+          unit = (nutrientKey === 'vitaminA' || nutrientKey === 'vitaminD') ? 'mcg' : 'mg';
+        }
+
+        if (amount > 0) {
+          provenanceList.push({
+            foodName: ing.name,
+            mealType: log.mealType,
+            timestamp: log.timestamp,
+            amount: Math.round(amount * 10) / 10,
+            unit
+          });
+        }
+      });
+    });
+
+    provenanceList.sort((a, b) => b.amount - a.amount);
+    const grandTotal = provenanceList.reduce((sum, item) => sum + item.amount, 0);
+
+    return { provenanceList, grandTotal };
+  };
+
+  const currentProvenance = getNutrientProvenance(selectedNutrient);
+
+  const nutrientOptions = [
+    { key: 'protein', label: isEn ? 'Protein (g)' : 'Proteine (g)', color: 'text-emerald-500 bg-emerald-500/10 border-emerald-500/30' },
+    { key: 'carbs', label: isEn ? 'Carbs (g)' : 'Carboidrati (g)', color: 'text-purple-500 bg-purple-500/10 border-purple-500/30' },
+    { key: 'fats', label: isEn ? 'Fats (g)' : 'Grassi (g)', color: 'text-blue-500 bg-blue-500/10 border-blue-500/30' },
+    { key: 'calories', label: isEn ? 'Calories (kcal)' : 'Calorie (kcal)', color: 'text-amber-500 bg-amber-500/10 border-amber-500/30' },
+    { key: 'potassium', label: isEn ? 'Potassium (K)' : 'Potassio (K)', color: 'text-teal-400 bg-teal-500/10 border-teal-500/30' },
+    { key: 'magnesium', label: isEn ? 'Magnesium (Mg)' : 'Magnesio (Mg)', color: 'text-indigo-400 bg-indigo-500/10 border-indigo-500/30' },
+    { key: 'calcium', label: isEn ? 'Calcium (Ca)' : 'Calcio (Ca)', color: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/30' },
+    { key: 'iron', label: isEn ? 'Iron (Fe)' : 'Ferro (Fe)', color: 'text-rose-400 bg-rose-500/10 border-rose-500/30' },
+    { key: 'vitaminC', label: isEn ? 'Vitamin C' : 'Vitamina C', color: 'text-orange-400 bg-orange-500/10 border-orange-500/30' },
+    { key: 'vitaminA', label: isEn ? 'Vitamin A' : 'Vitamina A', color: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30' }
+  ];
+
+  return (
+    <div className="max-w-6xl mx-auto space-y-8 pb-12">
+      
+      {/* Header Banner */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 rounded-3xl shadow-sm">
+        <div>
+          <div className="flex items-center gap-2">
+            <Utensils className="w-6 h-6 text-emerald-500" />
+            <h1 className="text-2xl font-extrabold text-zinc-900 dark:text-white">
+              Diario Nutrizionale
+            </h1>
+          </div>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
+            Tracciamento alimentazione e scomposizione della provenienza dei nutrienti
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowProvenanceModal(true)}
+            className="flex items-center gap-1.5 px-4 py-3 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-bold text-xs rounded-2xl shadow-sm hover:opacity-90 transition-all"
+          >
+            <BarChart3 className="w-4 h-4 text-emerald-400 dark:text-emerald-600" />
+            <span>Provenienza Nutrienti</span>
+          </button>
+
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center gap-2 px-5 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-sm rounded-2xl transition-all shadow-md shadow-emerald-500/20"
+          >
+            <Plus className="w-4 h-4" /> Aggiungi Pasto
+          </button>
+        </div>
+      </div>
+
+      {/* Real Food Calendar Component */}
+      <RealCalendar
+        selectedDate={selectedDate}
+        onSelectDate={setSelectedDate}
+        section="food"
+        logs={{ food: foodLogs }}
+      />
+
+      {/* Micronutrients Standard Percentage Median Box */}
+      <div className="bg-gradient-to-br from-teal-900 via-emerald-900 to-zinc-900 text-white p-6 rounded-3xl shadow-xl relative overflow-hidden border border-teal-800">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
+          <div>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/30 text-xs font-semibold mb-2">
+              <Award className="w-3.5 h-3.5" /> {isEn ? 'Micronutrient Target Index' : 'Indice Fabbisogno Micronutrienti'}
+            </div>
+            <h2 className="text-xl font-bold">{isEn ? 'Essential Micronutrient Coverage' : 'Copertura Micronutrienti Essenziali'}</h2>
+            <p className="text-xs text-teal-200 mt-1 max-w-xl">
+              {isEn ? 'Average percentage of daily target reached across all 8 essential vitamins and minerals.' : 'Percentuale media del fabbisogno giornaliero raggiunto per tutte le 8 vitamine e minerali essenziali.'}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-4 bg-white/10 backdrop-blur-md px-6 py-4 rounded-2xl border border-white/10 shrink-0">
+            <div className="text-right">
+              <span className="text-xs text-teal-200 block uppercase tracking-wider font-semibold">Media Micronutrienti</span>
+              <span className="text-3xl font-extrabold text-emerald-300 font-mono">{microMedianPercent}%</span>
+            </div>
+            <div className="w-16 h-16 rounded-full border-4 border-teal-400/30 flex items-center justify-center relative">
+              <span className="text-xs font-bold text-white">{microMedianPercent}%</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Breakdown of individual micronutrients */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-6 border-t border-teal-800/80">
+          {microList.map((m, i) => {
+            const pct = Math.min(100, Math.round((m.val / m.target) * 100));
+            return (
+              <button
+                key={i}
+                onClick={() => {
+                  setSelectedNutrient(m.key);
+                  setShowProvenanceModal(true);
+                }}
+                className="bg-black/30 p-3 rounded-xl border border-white/5 hover:border-emerald-400/50 text-left transition-all group"
+              >
+                <div className="flex justify-between text-xs text-teal-200 mb-1">
+                  <span className="group-hover:text-white font-semibold flex items-center gap-1">
+                    {m.label} <ListFilter className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </span>
+                  <span className="font-mono text-white">{m.val}/{m.target} {m.unit}</span>
+                </div>
+                <div className="w-full bg-white/10 rounded-full h-1.5 overflow-hidden">
+                  <div 
+                    className="bg-emerald-400 h-1.5 rounded-full transition-all" 
+                    style={{ width: `${pct}%` }} 
+                  />
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Meal History Table / Cards with Provenance Breakdown */}
+      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 shadow-sm">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-bold text-zinc-900 dark:text-white flex items-center gap-2">
+            <Calendar className="w-5 h-5 text-emerald-500" /> Registro Pasti & Provenienza Nutrienti
+          </h3>
+
+          {selectedDate && (
+            <span className="px-3 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-mono text-xs font-bold rounded-xl flex items-center gap-1">
+              <Filter className="w-3.5 h-3.5" /> Data: {selectedDate}
+            </span>
+          )}
+        </div>
+
+        {filteredLogs.length === 0 ? (
+          <p className="text-sm text-zinc-500 text-center py-8">Nessun pasto registrato {selectedDate ? `il ${selectedDate}` : 'in archivio'}.</p>
+        ) : (
+          <div className="space-y-4">
+            {filteredLogs.map((log) => {
+              const isExpanded = expandedLogId === log.id;
+              const micros = log.micros || {};
+              const ingredients = getLogBreakdown(log);
+
+              return (
+                <div 
+                  key={log.id}
+                  className="rounded-2xl bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200/70 dark:border-zinc-700/60 overflow-hidden hover:border-emerald-500/50 transition-all"
+                >
+                  <div className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="px-2.5 py-0.5 text-xs font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-lg">
+                          {log.mealType}
+                        </span>
+                        <span className="text-xs text-zinc-400 font-mono flex items-center gap-1">
+                          <Clock className="w-3 h-3" /> {log.timestamp}
+                        </span>
+                      </div>
+                      <p className="text-sm font-semibold text-zinc-900 dark:text-white">
+                        {log.description}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-3 text-xs font-mono shrink-0">
+                      <div className="text-right">
+                        <span className="text-amber-500 font-bold block">{log.calories} kcal</span>
+                        <span className="text-zinc-400 text-[11px]">
+                          🥩 {log.protein}g P | 🥑 {log.fats}g F | 🍞 {log.carbs}g C
+                        </span>
+                      </div>
+
+                      <button
+                        onClick={() => setExpandedLogId(isExpanded ? null : log.id)}
+                        className="px-3 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-sans text-xs font-bold flex items-center gap-1 hover:bg-emerald-500/20 transition-all"
+                      >
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span>{isExpanded ? 'Nascondi Provenienza' : 'Provenienza Nutrienti'}</span>
+                        {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                      </button>
+
+                      <button
+                        onClick={() => handleStartEdit(log)}
+                        className="px-2.5 py-1.5 text-xs font-bold text-purple-600 dark:text-purple-400 bg-purple-500/10 hover:bg-purple-500/20 rounded-xl transition-all inline-flex items-center gap-1 font-sans"
+                        title="Modifica pasto"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                        <span>Modifica</span>
+                      </button>
+
+                      <button
+                        onClick={() => onDeleteFoodLog(log.id)}
+                        className="p-2 text-zinc-400 hover:text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all"
+                        title="Elimina voce"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Guaranteed Scientific Ingredient Provenance Drawer */}
+                  {isExpanded && (
+                    <div className="p-5 bg-emerald-500/5 dark:bg-emerald-950/20 border-t border-emerald-500/20 text-xs space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300 font-bold">
+                          <BarChart3 className="w-4 h-4 text-emerald-500" />
+                          <span>Provenienza Nutrienti: Scomposizione reale per ciascun alimento (USDA / INRAN)</span>
+                        </div>
+                      </div>
+
+                      {/* Explicit Sentence Provenance Explanation */}
+                      <div className="p-3 bg-white dark:bg-zinc-800 rounded-2xl border border-emerald-500/20 space-y-1.5 text-[11px] text-zinc-700 dark:text-zinc-300 font-sans leading-relaxed">
+                        <div>
+                          🥩 <strong>Proteine ({log.protein}g)</strong>: {ingredients.map(i => `${i.protein}g da ${i.name}`).join(', ')}.
+                        </div>
+                        <div>
+                          🍞 <strong>Carboidrati ({log.carbs}g)</strong>: {ingredients.map(i => `${i.carbs}g da ${i.name}`).join(', ')}.
+                        </div>
+                        <div>
+                          🥑 <strong>Grassi ({log.fats}g)</strong>: {ingredients.map(i => `${i.fats}g da ${i.name}`).join(', ')}.
+                        </div>
+                        <div>
+                          🥦 <strong>Potassio ({micros.potassium || 0}mg) & Magnesio ({micros.magnesium || 0}mg)</strong>: Provengono principalmente da {ingredients.filter(i => (i.micros?.potassium || 0) > 30).map(i => `${i.name} (${i.micros?.potassium || 0}mg)`).join(', ') || ingredients.map(i => i.name).join(', ')}.
+                        </div>
+                      </div>
+
+                      {/* Ingredient Table Breakdown */}
+                      <div className="overflow-x-auto bg-white dark:bg-zinc-800/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-700/80 p-3">
+                        <table className="w-full text-left font-mono text-[11px]">
+                          <thead>
+                            <tr className="border-b border-zinc-200 dark:border-zinc-700 text-zinc-400 uppercase text-[10px]">
+                              <th className="py-2 px-3">Alimento / Porzione</th>
+                              <th className="py-2 px-3 text-amber-500">Calorie</th>
+                              <th className="py-2 px-3 text-emerald-500">Proteine</th>
+                              <th className="py-2 px-3 text-blue-500">Grassi</th>
+                              <th className="py-2 px-3 text-purple-500">Carbo</th>
+                              <th className="py-2 px-3 text-teal-400">Potassio (K)</th>
+                              <th className="py-2 px-3 text-indigo-400">Magnesio (Mg)</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-zinc-100 dark:divide-zinc-700/50">
+                            {ingredients.map((ing, idx) => (
+                              <tr key={idx} className="hover:bg-zinc-50 dark:hover:bg-zinc-700/30">
+                                <td className="py-2 px-3 font-bold text-zinc-900 dark:text-white font-sans">{ing.name}</td>
+                                <td className="py-2 px-3 font-bold text-amber-500">{ing.calories} kcal</td>
+                                <td className="py-2 px-3 text-emerald-500">{ing.protein}g</td>
+                                <td className="py-2 px-3 text-blue-500">{ing.fats}g</td>
+                                <td className="py-2 px-3 text-purple-500">{ing.carbs}g</td>
+                                <td className="py-2 px-3 text-teal-400">{ing.micros?.potassium || 0}mg</td>
+                                <td className="py-2 px-3 text-indigo-400">{ing.micros?.magnesium || 0}mg</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {/* Total Summary Row */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 font-mono text-[11px]">
+                        <div className="p-2.5 rounded-xl bg-white dark:bg-zinc-800 border border-zinc-200/60 dark:border-zinc-700">
+                          <span className="text-zinc-400 block">Calorie Totali</span>
+                          <span className="font-bold text-amber-500">{log.calories} kcal</span>
+                        </div>
+                        <div className="p-2.5 rounded-xl bg-white dark:bg-zinc-800 border border-zinc-200/60 dark:border-zinc-700">
+                          <span className="text-zinc-400 block">Proteine Totali</span>
+                          <span className="font-bold text-emerald-500">{log.protein}g</span>
+                        </div>
+                        <div className="p-2.5 rounded-xl bg-white dark:bg-zinc-800 border border-zinc-200/60 dark:border-zinc-700">
+                          <span className="text-zinc-400 block">Grassi Totali</span>
+                          <span className="font-bold text-blue-500">{log.fats}g</span>
+                        </div>
+                        <div className="p-2.5 rounded-xl bg-white dark:bg-zinc-800 border border-zinc-200/60 dark:border-zinc-700">
+                          <span className="text-zinc-400 block">Carboidrati Totali</span>
+                          <span className="font-bold text-purple-500">{log.carbs}g</span>
+                        </div>
+                      </div>
+
+                    </div>
+                  )}
+
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Daily Nutrient Provenance Inspector Modal */}
+      {showProvenanceModal && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-zinc-950/85 backdrop-blur-md overflow-y-auto">
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 sm:p-8 max-w-2xl w-full shadow-2xl space-y-5 my-auto max-h-[90vh] overflow-y-auto">
+            
+            <div className="flex justify-between items-center border-b border-zinc-100 dark:border-zinc-800 pb-4">
+              <div>
+                <span className="text-xs font-bold text-emerald-500 uppercase tracking-widest block">Nutrient Provenance Inspector</span>
+                <h3 className="text-lg font-bold text-zinc-900 dark:text-white flex items-center gap-2">
+                  <BarChart3 className="w-5 h-5 text-emerald-500" /> Provenienza dei Nutrienti Consumati
+                </h3>
+              </div>
+              <button onClick={() => setShowProvenanceModal(false)} className="p-2 text-zinc-400 hover:text-white rounded-xl">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Select Nutrient Filter Chips */}
+            <div className="space-y-2">
+              <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 block">
+                {isEn ? 'Select Nutrient to inspect provenance:' : 'Seleziona il nutriente da ispezionare:'}
+              </span>
+              <div className="flex flex-wrap gap-2">
+                {nutrientOptions.map(n => (
+                  <button
+                    key={n.key}
+                    type="button"
+                    onClick={() => setSelectedNutrient(n.key)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
+                      selectedNutrient === n.key
+                        ? n.color + ' ring-2 ring-emerald-500/30'
+                        : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700 hover:bg-zinc-200'
+                    }`}
+                  >
+                    {n.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Provenance Results List */}
+            <div className="space-y-3 pt-2">
+              <div className="flex items-center justify-between bg-zinc-100 dark:bg-zinc-800/80 p-3 rounded-2xl">
+                <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300 uppercase">
+                  Totale Consumato:
+                </span>
+                <span className="text-sm font-extrabold font-mono text-emerald-500">
+                  {currentProvenance.grandTotal} {currentProvenance.provenanceList[0]?.unit || 'g'}
+                </span>
+              </div>
+
+              {currentProvenance.provenanceList.length === 0 ? (
+                <p className="text-xs text-zinc-500 text-center py-6">Nessun alimento registrato apporta questo nutriente.</p>
+              ) : (
+                <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
+                  {currentProvenance.provenanceList.map((item, idx) => {
+                    const pct = Math.round((item.amount / currentProvenance.grandTotal) * 100);
+                    return (
+                      <div key={idx} className="p-3 bg-zinc-50 dark:bg-zinc-800/60 rounded-2xl border border-zinc-200/60 dark:border-zinc-700/60 space-y-1.5">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-bold text-zinc-900 dark:text-white">
+                            {item.foodName} <span className="text-[10px] text-zinc-400 font-normal">({item.mealType})</span>
+                          </span>
+                          <span className="font-mono font-extrabold text-emerald-600 dark:text-emerald-400">
+                            {item.amount} {item.unit} ({pct}%)
+                          </span>
+                        </div>
+                        <div className="w-full bg-zinc-200 dark:bg-zinc-700 rounded-full h-1.5 overflow-hidden">
+                          <div
+                            className="bg-emerald-500 h-1.5 rounded-full transition-all"
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => setShowProvenanceModal(false)}
+                className="w-full py-3 bg-zinc-900 text-white font-bold rounded-2xl text-xs hover:bg-black transition-all"
+              >
+                Chiudi Ispettore
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* Manual Add Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 max-w-md w-full shadow-2xl">
+            <h3 className="text-lg font-bold text-zinc-900 dark:text-white mb-4">Aggiungi Pasto Manuale</h3>
+            <form onSubmit={handleManualAdd} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-zinc-500 mb-1">Tipo Pasto</label>
+                <select
+                  value={mealType}
+                  onChange={(e) => setMealType(e.target.value)}
+                  className="w-full p-3 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-sm font-medium dark:text-white"
+                >
+                  <option value="Colazione">Colazione</option>
+                  <option value="Pranzo">Pranzo</option>
+                  <option value="Cena">Cena</option>
+                  <option value="Spuntino">Spuntino</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-zinc-500 mb-1">Descrizione Cibo</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Es. 200g petto di pollo e riso"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="w-full p-3 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-sm font-medium dark:text-white"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-zinc-500 mb-1">Calorie (kcal)</label>
+                  <input
+                    type="number"
+                    value={calories}
+                    onChange={(e) => setCalories(e.target.value)}
+                    className="w-full p-3 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-sm font-medium dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-zinc-500 mb-1">Proteine (g)</label>
+                  <input
+                    type="number"
+                    value={protein}
+                    onChange={(e) => setProtein(e.target.value)}
+                    className="w-full p-3 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-sm font-medium dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-zinc-500 mb-1">Grassi (g)</label>
+                  <input
+                    type="number"
+                    value={fats}
+                    onChange={(e) => setFats(e.target.value)}
+                    className="w-full p-3 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-sm font-medium dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-zinc-500 mb-1">Carboidrati (g)</label>
+                  <input
+                    type="number"
+                    value={carbs}
+                    onChange={(e) => setCarbs(e.target.value)}
+                    className="w-full p-3 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-sm font-medium dark:text-white"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="flex-1 py-3 bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-200 font-bold rounded-xl text-sm"
+                >
+                  Annulla
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-3 bg-emerald-500 text-white font-bold rounded-xl text-sm"
+                >
+                  Salva Pasto
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Food Modal */}
+      {editingFood && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-zinc-950/85 backdrop-blur-md overflow-y-auto">
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl space-y-5 my-auto max-h-[90vh] overflow-y-auto">
+            
+            <div className="flex justify-between items-center border-b border-zinc-100 dark:border-zinc-800 pb-3">
+              <div>
+                <span className="text-xs font-bold text-purple-500 uppercase tracking-widest block">Assistant AI Edit</span>
+                <h3 className="text-lg font-bold text-zinc-900 dark:text-white">
+                  Modifica Pasto [{editingFood.description}]
+                </h3>
+              </div>
+              <button onClick={() => setEditingFood(null)} className="p-2 text-zinc-400 hover:text-white rounded-xl">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* AI Prompt Box */}
+            <div className="bg-gradient-to-r from-purple-500/10 via-indigo-500/10 to-teal-500/10 border border-purple-500/30 rounded-2xl p-4 space-y-2">
+              <label className="block text-xs font-bold text-purple-700 dark:text-purple-300 flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4 text-purple-500 animate-spin" />
+                <span>{isEn ? 'Instruct Assistant AI to modify this meal:' : 'Comunica ad Assistant AI la modifica del pasto:'}</span>
+              </label>
+
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={aiEditPrompt}
+                  onChange={(e) => setAiEditPrompt(e.target.value)}
+                  placeholder={isEn ? "e.g. 'Replace rice with 80g quinoa and add 100g chicken breast'" : "es. 'Sostituisci il riso con 80g di farro e aggiungi 100g di pollo'"}
+                  className="flex-1 p-3 bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs font-medium dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+                <button
+                  type="button"
+                  onClick={handleApplyAiEdit}
+                  disabled={!aiEditPrompt.trim() || isAiProcessing}
+                  className="px-4 py-3 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-bold rounded-xl text-xs flex items-center gap-1 shrink-0 shadow-md shadow-purple-500/20"
+                >
+                  {isAiProcessing ? <span className="animate-pulse">AI...</span> : <Send className="w-3.5 h-3.5" />}
+                </button>
+              </div>
+            </div>
+
+            <form onSubmit={handleSaveEdit} className="space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-zinc-500 mb-1">Tipo Pasto</label>
+                <select
+                  value={editMealType}
+                  onChange={(e) => setEditMealType(e.target.value)}
+                  className="w-full p-3 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-sm font-medium dark:text-white"
+                >
+                  <option value="Colazione">Colazione</option>
+                  <option value="Pranzo">Pranzo</option>
+                  <option value="Cena">Cena</option>
+                  <option value="Spuntino">Spuntino</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-zinc-500 mb-1">Descrizione Cibo</label>
+                <input
+                  type="text"
+                  required
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                  className="w-full p-3 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-sm font-medium dark:text-white"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-zinc-500 mb-1">Calorie (kcal)</label>
+                  <input
+                    type="number"
+                    value={editCalories}
+                    onChange={(e) => setEditCalories(e.target.value)}
+                    className="w-full p-3 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-sm font-medium text-amber-500 font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-zinc-500 mb-1">Proteine (g)</label>
+                  <input
+                    type="number"
+                    value={editProtein}
+                    onChange={(e) => setEditProtein(e.target.value)}
+                    className="w-full p-3 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-sm font-medium text-emerald-500 font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-zinc-500 mb-1">Grassi (g)</label>
+                  <input
+                    type="number"
+                    value={editFats}
+                    onChange={(e) => setEditFats(e.target.value)}
+                    className="w-full p-3 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-sm font-medium text-blue-500 font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-zinc-500 mb-1">Carboidrati (g)</label>
+                  <input
+                    type="number"
+                    value={editCarbs}
+                    onChange={(e) => setEditCarbs(e.target.value)}
+                    className="w-full p-3 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-sm font-medium text-purple-500 font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingFood(null)}
+                  className="flex-1 py-3 bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-200 font-bold rounded-xl text-sm"
+                >
+                  Annulla
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-3 bg-emerald-500 text-white font-bold rounded-xl text-sm flex items-center justify-center gap-1"
+                >
+                  <Check className="w-4 h-4" /> Conferma & Salva
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+}
