@@ -207,40 +207,40 @@ export const INITIAL_TRADING_LOGS = [
   {
     id: 'tr1',
     timestamp: '2026-09-14 11:15',
-    ticker: 'BTC/USDT',
+    ticker: 'MNQ1!',
     type: 'BUY',
-    entryPrice: 62450,
-    takeProfit: 66500,
-    stopLoss: 60800,
-    size: '0.5 BTC',
-    status: 'APERTO',
-    notes: 'Breakout di struttura su time-frame 4H con volumi sostenuti sopra la media mobile 50 giorni.',
-    pnl: '+2.8%'
+    entryPrice: 19500,
+    takeProfit: 19800,
+    stopLoss: 19400,
+    size: '5 Contratti Micro (MNQ1!)',
+    status: 'CHIUSO',
+    notes: 'Breakout di struttura su 5 contratti micro MNQ con +300 punti.',
+    pnl: '+$3,000'
   },
   {
     id: 'tr2',
     timestamp: '2026-09-13 15:40',
-    ticker: 'ETH/USDT',
+    ticker: 'NQ1!',
     type: 'BUY',
-    entryPrice: 2420,
-    takeProfit: 2650,
-    stopLoss: 2340,
-    size: '5 ETH',
+    entryPrice: 19400,
+    takeProfit: 19600,
+    stopLoss: 19300,
+    size: '1 Contratto E-mini (NQ1!)',
     status: 'CHIUSO',
-    notes: 'Retest riuscito del supporto settimanale. Chiuso in target a $2,650.',
-    pnl: '+9.5%'
+    notes: 'Retest supporto NQ1 a $20/punto. Chiuso con +200 punti.',
+    pnl: '+$4,000'
   },
   {
     id: 'tr3',
     timestamp: '2026-09-11 19:20',
-    ticker: 'NVDA',
-    type: 'BUY',
-    entryPrice: 118,
-    takeProfit: 132,
-    stopLoss: 112,
-    size: '40 Azioni',
+    ticker: 'ES1!',
+    type: 'SELL',
+    entryPrice: 5600,
+    takeProfit: 5580,
+    stopLoss: 5610,
+    size: '2 Contratti E-mini (ES1!)',
     status: 'CHIUSO',
-    notes: 'Inversione bullish dopo dati utili trimestre.',
-    pnl: '+11.8%'
+    notes: 'Short su resistenza SP500 a $50/punto per contratto.',
+    pnl: '+$2,000'
   }
 ];

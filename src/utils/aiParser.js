@@ -75,7 +75,7 @@ function calculateTradeOutcome(text, tradeObj) {
   const { qty, multiplier } = getFuturesContractSpecs(tradeObj.ticker, text);
 
   let status = tradeObj.status || 'APERTO';
-  let pnl = tradeObj.pnl || '0.0%';
+  let pnl = tradeObj.pnl || '$0';
 
   const isFullTp = lower.includes('full tp') || lower.includes('tp preso') || lower.includes('target preso') || lower.includes('preso tp') || lower.includes('hit tp') || lower.includes('in tp') || lower.includes('chiuso in profitto') || lower.includes('target') || lower.includes('tp hit') || lower.includes('closed in profit');
   const isSl = lower.includes('sl') || lower.includes('stop loss') || lower.includes('preso sl') || lower.includes('stoppato') || lower.includes('hit sl') || lower.includes('in sl') || lower.includes('chiuso in perdita') || lower.includes('sl hit') || lower.includes('stopped out');
@@ -91,12 +91,10 @@ function calculateTradeOutcome(text, tradeObj) {
       }
 
       const dollarProfit = deltaPts * multiplier * qty;
-      const pct = (deltaPts / entryPrice) * 100;
-      
       const formattedDollars = '$' + Math.abs(Math.round(dollarProfit)).toLocaleString();
-      pnl = `+${formattedDollars} (+${(Math.round(pct * 10) / 10)}%)`;
+      pnl = (dollarProfit >= 0 ? '+$' : '-$') + Math.abs(Math.round(dollarProfit)).toLocaleString();
     } else {
-      pnl = '+$3,000 (+1.5%)';
+      pnl = '+$3,000';
     }
   } else if (isSl) {
     status = 'CHIUSO';
@@ -109,13 +107,14 @@ function calculateTradeOutcome(text, tradeObj) {
       }
 
       const dollarLoss = deltaPts * multiplier * qty;
-      const pct = (deltaPts / entryPrice) * 100;
-      
       const formattedDollars = '$' + Math.abs(Math.round(dollarLoss)).toLocaleString();
-      pnl = `-${formattedDollars} (${(Math.round(pct * 10) / 10)}%)`;
+      pnl = (dollarLoss >= 0 ? '+$' : '-$') + Math.abs(Math.round(dollarLoss)).toLocaleString();
     } else {
-      pnl = '-$1,000 (-0.5%)';
+      pnl = '-$1,000';
     }
+  } else if (tradeObj.pnl && !tradeObj.pnl.includes('$')) {
+    // Convert percentage string to monetary dollars if available
+    pnl = '+$0';
   }
 
   return {
@@ -325,8 +324,8 @@ ${JSON.stringify(currentTrade, null, 2)}
 Istruzione di modifica dell'utente: "${instruction}"
 
 Analizza l'istruzione e restituisci UNICAMENTE un oggetto JSON valido contenente i dati aggiornati del Trade.
-Se l'utente dice "ha preso full tp", "full tp hit", "stoppato in sl" o "hit sl", calcola in modo matematico preciso il profitto in Dollari ($) ed in percentuale (%), basandoti sulle specifiche dei contratti CME Futures:
-- MNQ (Micro Nasdaq-100 Futures): $2.00 per punto per contratto (es. 5 contratti per +300 punti = +$3.000).
+Se l'utente dice "ha preso full tp", "full tp hit", "stoppato in sl" o "hit sl", calcola in modo matematico preciso il profitto o la perdita ESCLUSIVAMENTE IN DOLLARI USD ($):
+- MNQ (Micro Nasdaq-100 Futures): $2.00 per punto per contratto (es. 5 contratti per +300 punti = +$3,000).
 - NQ (E-mini Nasdaq-100 Futures): $20.00 per punto per contratto.
 - MES (Micro S&P 500): $5.00 per punto per contratto.
 - ES (E-mini S&P 500): $50.00 per punto per contratto.
@@ -339,7 +338,7 @@ Esempio:
   "takeProfit": ${currentTrade.takeProfit},
   "stopLoss": ${currentTrade.stopLoss},
   "status": "CHIUSO",
-  "pnl": "+$3,000 (+1.5%)",
+  "pnl": "+$3,000",
   "notes": "Modificato da Assistant AI: Full TP raggiunto con 5 contratti MNQ."
 }
 
@@ -470,8 +469,8 @@ ${langInstruction}
 Analizza la richiesta dell'utente Ivan e restituisci UNICAMENTE un oggetto JSON valido.
 
 SE È TRADING (Trading/Futures/Indices/Crypto/Stock):
-Se l'utente specifica il numero di contratti (es. "5 contratti micro MNQ") ed il TP/SL o "full tp", calcola il profitto sia in DOLLARI ($) sia in PERCENTUALE (%), conoscendo le specifiche reali dei contratti CME Futures:
-- MNQ (Micro E-mini Nasdaq): $2.00 per punto per contratto (es. 5 contratti per 300 punti = +$3.000).
+Se l'utente specifica il numero di contratti (es. "5 contratti micro MNQ") ed il TP/SL o "full tp", calcola il profitto ESCLUSIVAMENTE IN DOLLARI USD ($), conoscendo le specifiche reali dei contratti CME Futures:
+- MNQ (Micro E-mini Nasdaq): $2.00 per punto per contratto (es. 5 contratti per 300 punti = +$3,000).
 - NQ (E-mini Nasdaq): $20.00 per punto per contratto.
 - MES (Micro S&P 500): $5.00 per punto per contratto.
 - ES (E-mini S&P 500): $50.00 per punto per contratto.
@@ -488,7 +487,7 @@ Se l'utente specifica il numero di contratti (es. "5 contratti micro MNQ") ed il
     "size": "5 Contratti Micro (MNQ1!)",
     "status": "APERTO" | "CHIUSO",
     "notes": "note",
-    "pnl": "+$3,000 (+1.5%)"
+    "pnl": "+$3,000"
   },
   "message": "..."
 }
@@ -548,7 +547,7 @@ Richiesta dell'utente Ivan: "${userText}"`;
       size: rawLog.size || '1 Contratto',
       status: rawLog.status || 'APERTO',
       notes: rawLog.notes || userText,
-      pnl: rawLog.pnl || '0.0%'
+      pnl: rawLog.pnl || '$0'
     };
 
     finalLog = calculateTradeOutcome(userText, initialTrade);
@@ -600,7 +599,7 @@ function fallbackLocalParser(text, timestamp, lang = 'IT', currentLogs = { food:
       size: '1 Contratto',
       status: 'APERTO',
       notes: text,
-      pnl: '0.0%'
+      pnl: '$0'
     };
 
     const tradeLog = calculateTradeOutcome(text, initialTrade);
