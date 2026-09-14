@@ -15,6 +15,46 @@ const getGeminiApiKey = () => {
   return '';
 };
 
+function detectIntentCategory(text) {
+  const lower = (text || '').toLowerCase().trim();
+
+  if (
+    lower.startsWith('trading') || 
+    lower.includes('buy ') || 
+    lower.includes('sell ') || 
+    lower.includes('long ') || 
+    lower.includes('short ') || 
+    lower.includes('btc') || 
+    lower.includes('eth') || 
+    lower.includes('sol') || 
+    lower.includes('trade') || 
+    lower.includes('tp ') || 
+    lower.includes('sl ') || 
+    lower.includes('take profit') || 
+    lower.includes('stop loss') || 
+    lower.includes('entry price') || 
+    lower.includes('comprato') || 
+    lower.includes('venduto')
+  ) {
+    return 'trading';
+  }
+
+  if (
+    lower.startsWith('training') || 
+    lower.startsWith('allenamento') || 
+    lower.includes('squat') || 
+    lower.includes('panca') || 
+    lower.includes('stacco') || 
+    lower.includes('workout') || 
+    lower.includes('serie') || 
+    lower.includes('reps')
+  ) {
+    return 'training';
+  }
+
+  return 'food';
+}
+
 function detectMealType(text, timestamp) {
   const lower = (text || '').toLowerCase();
 
@@ -193,7 +233,10 @@ Rispondi ESCLUSIVAMENTE con il JSON valido (senza markdown o altro testo).`;
 }
 
 async function callGeminiApi(userText, currentLogs, timestamp, lang = 'IT') {
-  const langInstruction = lang === 'EN'
+  const isEn = lang === 'EN';
+  const explicitCategory = detectIntentCategory(userText);
+
+  const langInstruction = isEn
     ? 'IMPORTANT: Respond strictly in ENGLISH for all text messages, headings, and explanations.'
     : 'IMPORTANTE: Rispondi rigorosamente in ITALIANO per tutti i messaggi di testo, intestazioni e spiegazioni.';
 
@@ -219,7 +262,7 @@ SE È TRADING (Trading):
     "notes": "note",
     "pnl": "0.0%"
   },
-  "message": "✅ **Trade registrato con Gemini AI!**\\n\\n..."
+  "message": "..."
 }
 
 SE È CIBO (Food):
@@ -247,17 +290,44 @@ Richiesta dell'utente Ivan: "${userText}"`;
   const cleanJson = replyText.replace(/```json/g, '').replace(/```/g, '').trim();
   const parsed = JSON.parse(cleanJson);
 
-  // Normalize parsed response guaranteed
-  const category = parsed.category || (parsed.ticker || (parsed.log && parsed.log.ticker) ? 'trading' : 'food');
+  // Force category to explicit intent if detected
+  const category = (explicitCategory !== 'food') ? explicitCategory : (parsed.category || 'food');
   let rawLog = parsed.log || parsed;
 
-  const finalLog = {
+  let finalLog = {
     id: (category === 'food' ? 'f_' : category === 'training' ? 't_' : 'tr_') + Date.now(),
     timestamp,
     ...rawLog
   };
 
-  if (category === 'food') {
+  let message = parsed.message;
+
+  if (category === 'trading') {
+    const tickerMatch = userText.match(/(btc|eth|sol|nvda|aapl|eurusd|usdt)/i);
+    const priceMatch = userText.match(/(\d{4,6})/);
+
+    const ticker = rawLog.ticker || (tickerMatch ? tickerMatch[1].toUpperCase() + '/USDT' : 'BTC/USDT');
+    const entryPrice = Number(rawLog.entryPrice || rawLog.entry_price || (priceMatch ? parseInt(priceMatch[1], 10) : 62500));
+    const type = rawLog.type || (userText.toLowerCase().includes('sell') || userText.toLowerCase().includes('short') ? 'SELL' : 'BUY');
+
+    finalLog = {
+      id: 'tr_' + Date.now(),
+      timestamp,
+      ticker,
+      type,
+      entryPrice,
+      takeProfit: Number(rawLog.takeProfit || rawLog.take_profit || (type === 'BUY' ? Math.round(entryPrice * 1.05) : Math.round(entryPrice * 0.95))),
+      stopLoss: Number(rawLog.stopLoss || rawLog.stop_loss || (type === 'BUY' ? Math.round(entryPrice * 0.96) : Math.round(entryPrice * 1.04))),
+      size: rawLog.size || '1 Posizione',
+      status: rawLog.status || 'APERTO',
+      notes: rawLog.notes || userText,
+      pnl: rawLog.pnl || '0.0%'
+    };
+
+    message = isEn
+      ? `✅ **Trade logged!**\n\n📈 **Asset**: ${ticker} (${type})\n💵 **Entry**: $${entryPrice.toLocaleString()}\n🎯 **TP**: $${finalLog.takeProfit.toLocaleString()} | 🛑 **SL**: $${finalLog.stopLoss.toLocaleString()}`
+      : `✅ **Trade registrato!**\n\n📈 **Asset**: ${ticker} (${type})\n💵 **Entry**: $${entryPrice.toLocaleString()}\n🎯 **TP**: $${finalLog.takeProfit.toLocaleString()} | 🛑 **SL**: $${finalLog.stopLoss.toLocaleString()}`;
+  } else if (category === 'food') {
     finalLog.mealType = detectedType;
   }
 
@@ -265,24 +335,21 @@ Richiesta dell'utente Ivan: "${userText}"`;
     type: 'log_entry',
     category,
     log: finalLog,
-    message: parsed.message || `✅ **Operazione registrata!**`
+    message: message || `✅ **Operazione registrata!**`
   };
 }
 
 function fallbackLocalParser(text, timestamp, lang = 'IT') {
   const isEn = lang === 'EN';
-  const lower = text.toLowerCase();
+  const category = detectIntentCategory(text);
 
-  // Check if trading prompt
-  const isTrading = lower.includes('trading') || lower.includes('buy') || lower.includes('sell') || lower.includes('btc') || lower.includes('eth') || lower.includes('crypto') || lower.includes('trade');
-
-  if (isTrading) {
+  if (category === 'trading') {
     const tickerMatch = text.match(/(btc|eth|sol|nvda|aapl|eurusd|usdt)/i);
     const priceMatch = text.match(/(\d{4,6})/);
 
     const ticker = tickerMatch ? tickerMatch[1].toUpperCase() + '/USDT' : 'BTC/USDT';
     const entryPrice = priceMatch ? parseInt(priceMatch[1], 10) : 62500;
-    const type = lower.includes('sell') || lower.includes('short') ? 'SELL' : 'BUY';
+    const type = text.toLowerCase().includes('sell') || text.toLowerCase().includes('short') ? 'SELL' : 'BUY';
 
     const tradeLog = {
       id: 'tr_' + Date.now(),
