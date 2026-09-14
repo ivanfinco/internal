@@ -90,32 +90,32 @@ export default function AiHomeScreen({ logs, onAddLog, onQuickTabSwitch, lang = 
   ];
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6 pb-12">
+    <div className="max-w-5xl mx-auto space-y-4 sm:space-y-6 pb-8 sm:pb-12 px-2 sm:px-4 md:px-0">
       
       {/* Daily AI Lifestyle & Nutrition Tip Card */}
       <DailyTipCard profile={profile} logs={logs} lang={lang} />
 
-      {/* Refined Minimalist Hero Header Card */}
-      <div className="relative overflow-hidden bg-zinc-900 text-white rounded-3xl p-6 sm:p-8 shadow-xl border border-zinc-800">
-        <div className="relative z-10 space-y-3">
+      {/* Refined Responsive Hero Header Card */}
+      <div className="relative overflow-hidden bg-zinc-900 text-white rounded-3xl p-5 sm:p-8 shadow-xl border border-zinc-800">
+        <div className="relative z-10 space-y-2 sm:space-y-3">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-zinc-800 text-zinc-300 border border-zinc-700 text-xs font-medium">
             <Sparkles className="w-3.5 h-3.5 text-emerald-400" /> Assistant AI • {isEn ? 'English' : 'Italiano'}
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+          <h1 className="text-xl sm:text-3xl font-bold tracking-tight">
             {t.title}
           </h1>
-          <p className="text-sm text-zinc-400 max-w-2xl leading-relaxed">
+          <p className="text-xs sm:text-sm text-zinc-400 max-w-2xl leading-relaxed">
             {t.description}
           </p>
         </div>
 
         {/* Quick Suggestion Chips */}
-        <div className="mt-6 flex flex-wrap gap-2 relative z-10">
+        <div className="mt-4 sm:mt-6 flex flex-wrap gap-1.5 sm:gap-2 relative z-10">
           {quickPrompts.map((item, idx) => (
             <button
               key={idx}
               onClick={() => setInputText(item.text)}
-              className="text-xs bg-zinc-800/80 hover:bg-zinc-700/80 border border-zinc-700 px-3.5 py-1.5 rounded-xl transition-all font-medium text-zinc-300 hover:text-white"
+              className="text-[11px] sm:text-xs bg-zinc-800/80 hover:bg-zinc-700/80 border border-zinc-700 px-3 py-1.5 rounded-xl transition-all font-medium text-zinc-300 hover:text-white"
             >
               {item.label}
             </button>
@@ -123,37 +123,37 @@ export default function AiHomeScreen({ logs, onAddLog, onQuickTabSwitch, lang = 
         </div>
       </div>
 
-      {/* Main AI Chat Container */}
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-3xl shadow-xs overflow-hidden flex flex-col h-[560px]">
+      {/* Main AI Chat Container - Fully Responsive for Mobile Phone & iPad */}
+      <div className="bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-3xl shadow-xs overflow-hidden flex flex-col h-[calc(100vh-250px)] min-h-[420px] sm:h-[560px]">
         
         {/* Chat Feed Header */}
-        <div className="px-6 py-4 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between bg-zinc-50/50 dark:bg-zinc-900/50">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white flex items-center justify-center font-bold border border-zinc-200/80 dark:border-zinc-700">
+        <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-zinc-100 dark:border-zinc-800 flex flex-wrap items-center justify-between gap-2 bg-zinc-50/50 dark:bg-zinc-900/50">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white flex items-center justify-center font-bold border border-zinc-200/80 dark:border-zinc-700">
               <Bot className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-zinc-900 dark:text-white">AI Assistant</h3>
-              <p className="text-[11px] text-zinc-400">Assistant AI Direct API ({isEn ? 'English' : 'Italiano'})</p>
+              <h3 className="text-xs sm:text-sm font-bold text-zinc-900 dark:text-white">AI Assistant</h3>
+              <p className="text-[10px] sm:text-[11px] text-zinc-400">Assistant AI Direct API ({isEn ? 'English' : 'Italiano'})</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar">
             <button
               onClick={() => onQuickTabSwitch('food')}
-              className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all"
+              className="px-2 py-1 text-[11px] sm:text-xs font-semibold rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all shrink-0"
             >
-              🥗 Food Logs ({logs.food.length})
+              🥗 Food ({logs.food.length})
             </button>
             <button
               onClick={() => onQuickTabSwitch('training')}
-              className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all"
+              className="px-2 py-1 text-[11px] sm:text-xs font-semibold rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all shrink-0"
             >
-              🏋️ Training ({logs.training.length})
+              🏋️ Workout ({logs.training.length})
             </button>
             <button
               onClick={() => onQuickTabSwitch('trading')}
-              className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all"
+              className="px-2 py-1 text-[11px] sm:text-xs font-semibold rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all shrink-0"
             >
               📈 Trading ({logs.trading.length})
             </button>
@@ -161,20 +161,20 @@ export default function AiHomeScreen({ logs, onAddLog, onQuickTabSwitch, lang = 
         </div>
 
         {/* Chat Messages Feed */}
-        <div className="flex-1 p-6 overflow-y-auto space-y-4">
+        <div className="flex-1 p-3 sm:p-6 overflow-y-auto space-y-3 sm:space-y-4">
           {chatHistory.map((item) => (
             <div
               key={item.id}
-              className={`flex gap-3 ${item.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+              className={`flex gap-2 sm:gap-3 ${item.sender === 'user' ? 'justify-end' : 'justify-start'}`}
             >
               {item.sender === 'ai' && (
-                <div className="w-8 h-8 rounded-xl bg-zinc-900 dark:bg-zinc-800 text-white flex items-center justify-center shrink-0 text-xs shadow-xs border border-zinc-700/50">
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-zinc-900 dark:bg-zinc-800 text-white flex items-center justify-center shrink-0 text-xs shadow-xs border border-zinc-700/50 mt-1">
                   AI
                 </div>
               )}
 
               <div
-                className={`max-w-2xl rounded-2xl p-4 text-sm leading-relaxed ${
+                className={`max-w-[85%] sm:max-w-2xl rounded-2xl p-3 sm:p-4 text-xs sm:text-sm leading-relaxed ${
                   item.sender === 'user'
                     ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-medium rounded-tr-xs shadow-xs'
                     : 'bg-zinc-100/90 dark:bg-zinc-800/80 text-zinc-800 dark:text-zinc-200 border border-zinc-200/60 dark:border-zinc-700/60 rounded-tl-xs'
@@ -183,7 +183,7 @@ export default function AiHomeScreen({ logs, onAddLog, onQuickTabSwitch, lang = 
                 <div className="whitespace-pre-wrap font-sans">
                   {item.message}
                 </div>
-                <div className={`mt-2 text-[10px] text-right font-mono ${
+                <div className={`mt-1.5 text-[9px] sm:text-[10px] text-right font-mono ${
                   item.sender === 'user' ? 'text-zinc-300 dark:text-zinc-600' : 'text-zinc-400'
                 }`}>
                   {item.timestamp}
@@ -195,10 +195,10 @@ export default function AiHomeScreen({ logs, onAddLog, onQuickTabSwitch, lang = 
                   <img
                     src={avatar}
                     alt="User Avatar"
-                    className="w-8 h-8 rounded-xl object-cover shrink-0 border border-zinc-200 dark:border-zinc-700 shadow-xs"
+                    className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl object-cover shrink-0 border border-zinc-200 dark:border-zinc-700 shadow-xs mt-1"
                   />
                 ) : (
-                  <div className="w-8 h-8 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-base border border-zinc-200 dark:border-zinc-700 flex items-center justify-center shrink-0 shadow-xs">
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-sm sm:text-base border border-zinc-200 dark:border-zinc-700 flex items-center justify-center shrink-0 shadow-xs mt-1">
                     {avatar}
                   </div>
                 )
@@ -207,11 +207,11 @@ export default function AiHomeScreen({ logs, onAddLog, onQuickTabSwitch, lang = 
           ))}
 
           {isProcessing && (
-            <div className="flex gap-3 justify-start">
-              <div className="w-8 h-8 rounded-xl bg-zinc-900 text-white flex items-center justify-center shrink-0 text-xs">
+            <div className="flex gap-2 sm:gap-3 justify-start">
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-zinc-900 text-white flex items-center justify-center shrink-0 text-xs">
                 AI
               </div>
-              <div className="bg-zinc-100 dark:bg-zinc-800 p-4 rounded-2xl text-sm text-zinc-500 flex items-center gap-2">
+              <div className="bg-zinc-100 dark:bg-zinc-800 p-3 sm:p-4 rounded-2xl text-xs sm:text-sm text-zinc-500 flex items-center gap-2">
                 <div className="w-2 h-2 bg-emerald-500 rounded-full animate-ping" />
                 <span>{t.processing}</span>
               </div>
@@ -221,21 +221,21 @@ export default function AiHomeScreen({ logs, onAddLog, onQuickTabSwitch, lang = 
         </div>
 
         {/* Input Bar */}
-        <form onSubmit={handleSubmit} className="p-4 border-t border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+        <form onSubmit={handleSubmit} className="p-3 sm:p-4 border-t border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-900">
           <div className="relative flex items-center">
             <input
               type="text"
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               placeholder={t.placeholder}
-              className="w-full pl-5 pr-14 py-4 bg-zinc-100 dark:bg-zinc-800/90 border border-zinc-200/80 dark:border-zinc-700/80 rounded-2xl focus:outline-none focus:ring-2 focus:ring-zinc-400 dark:focus:ring-zinc-500 text-zinc-900 dark:text-white placeholder-zinc-400 text-sm font-medium transition-all"
+              className="w-full pl-4 pr-12 py-3 sm:py-4 bg-zinc-100 dark:bg-zinc-800/90 border border-zinc-200/80 dark:border-zinc-700/80 rounded-2xl focus:outline-none focus:ring-2 focus:ring-zinc-400 dark:focus:ring-zinc-500 text-zinc-900 dark:text-white placeholder-zinc-400 text-xs sm:text-sm font-medium transition-all"
             />
             <button
               type="submit"
               disabled={!inputText.trim() || isProcessing}
-              className="absolute right-2 p-3 bg-zinc-900 hover:bg-black dark:bg-zinc-100 dark:hover:bg-white text-white dark:text-zinc-900 disabled:opacity-50 rounded-xl transition-all shadow-xs"
+              className="absolute right-1.5 p-2.5 sm:p-3 bg-zinc-900 hover:bg-black dark:bg-zinc-100 dark:hover:bg-white text-white dark:text-zinc-900 disabled:opacity-50 rounded-xl transition-all shadow-xs"
             >
-              <Send className="w-4 h-4" />
+              <Send className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </button>
           </div>
         </form>

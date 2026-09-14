@@ -30,7 +30,7 @@ export default function TradingView({ tradingLogs = [], onAddTradingLog, onDelet
   const [editTakeProfit, setEditTakeProfit] = useState(0);
   const [editStopLoss, setEditStopLoss] = useState(0);
   const [editStatus, setEditStatus] = useState('APERTO');
-  const [editPnl, setEditPnl] = useState('0.0%');
+  const [editPnl, setEditPnl] = useState('$0');
   const [editNotes, setEditNotes] = useState('');
 
   // ═══════════════════════════════════════════════════
@@ -62,10 +62,7 @@ export default function TradingView({ tradingLogs = [], onAddTradingLog, onDelet
     : (safeLogs.length > 0 ? 100 : 0);
 
   const totalPnlVal = safeLogs.reduce((sum, t) => sum + parsePnlNum(t.pnl), 0);
-  const isDollarPnl = closedTrades.some(t => String(t.pnl).includes('$'));
-  const realPnlDisplay = isDollarPnl
-    ? (totalPnlVal >= 0 ? '+$' : '-$') + Math.abs(Math.round(totalPnlVal)).toLocaleString()
-    : (totalPnlVal >= 0 ? '+' : '') + (Math.round(totalPnlVal * 10) / 10) + '%';
+  const realPnlDisplay = (totalPnlVal >= 0 ? '+$' : '-$') + Math.abs(Math.round(totalPnlVal)).toLocaleString();
 
   const grossProfit = winningTrades.reduce((sum, t) => sum + parsePnlNum(t.pnl), 0);
   const grossLoss = Math.abs(losingTrades.reduce((sum, t) => sum + parsePnlNum(t.pnl), 0));
@@ -91,7 +88,7 @@ export default function TradingView({ tradingLogs = [], onAddTradingLog, onDelet
       size: '1 Contratto',
       status: 'APERTO',
       notes,
-      pnl: '0.0%'
+      pnl: '$0'
     };
 
     setSelectedDate(null);
@@ -108,7 +105,7 @@ export default function TradingView({ tradingLogs = [], onAddTradingLog, onDelet
     setEditTakeProfit(tr.takeProfit || 0);
     setEditStopLoss(tr.stopLoss || 0);
     setEditStatus(tr.status || 'APERTO');
-    setEditPnl(tr.pnl || '0.0%');
+    setEditPnl(tr.pnl || '$0');
     setEditNotes(tr.notes || '');
   };
 
@@ -175,38 +172,38 @@ export default function TradingView({ tradingLogs = [], onAddTradingLog, onDelet
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 pb-12">
+    <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6 pb-8 sm:pb-12 px-2 sm:px-4 md:px-0">
       
-      {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 rounded-3xl shadow-sm">
+      {/* Header Banner - Mobile Responsive */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-4 sm:p-6 rounded-3xl shadow-sm">
         <div>
           <div className="flex items-center gap-2">
-            <TrendingUp className="w-6 h-6 text-purple-500" />
-            <h1 className="text-2xl font-extrabold text-zinc-900 dark:text-white">
+            <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-purple-500" />
+            <h1 className="text-xl sm:text-2xl font-extrabold text-zinc-900 dark:text-white">
               Sezione Trading & Market Logs
             </h1>
           </div>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
+          <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-1">
             Tracciamento e gestione delle posizioni Futures (MNQ, NQ, MES, ES), Crypto e Stock
           </p>
         </div>
 
         <button
           onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-2 px-5 py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold text-sm rounded-2xl transition-all shadow-md shadow-purple-500/20"
+          className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 sm:px-5 sm:py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs sm:text-sm rounded-2xl transition-all shadow-md shadow-purple-500/20"
         >
           <Plus className="w-4 h-4" /> Aggiungi Trade
         </button>
       </div>
 
       {/* Performance Recap Bar */}
-      <div className="p-4 bg-zinc-900 border border-purple-500/40 rounded-2xl text-xs font-mono text-zinc-300 flex flex-wrap items-center justify-between gap-3 shadow-md">
+      <div className="p-3 sm:p-4 bg-zinc-900 border border-purple-500/40 rounded-2xl text-xs font-mono text-zinc-300 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 sm:gap-3 shadow-md">
         <div className="flex items-center gap-2">
-          <Zap className="w-4 h-4 text-amber-400" />
-          <span className="font-bold text-white font-sans text-sm">Recap Prestazioni Trading:</span>
+          <Zap className="w-4 h-4 text-amber-400 shrink-0" />
+          <span className="font-bold text-white font-sans text-xs sm:text-sm">Recap Prestazioni Trading:</span>
         </div>
 
-        <div className="flex flex-wrap items-center gap-4 text-xs font-bold">
+        <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-[11px] sm:text-xs font-bold w-full sm:w-auto justify-between sm:justify-end">
           <div>📊 Posizioni: <strong className="text-white font-mono">{totalTradesCount}</strong></div>
           <div>🎯 Win Rate: <strong className="text-emerald-400 font-mono">{realWinRate}%</strong></div>
           <div>🏆 Profit Factor: <strong className="text-indigo-300 font-mono">{realProfitFactor}</strong></div>
@@ -214,74 +211,74 @@ export default function TradingView({ tradingLogs = [], onAddTradingLog, onDelet
         </div>
       </div>
 
-      {/* Real Summary KPI Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      {/* Real Summary KPI Cards - Mobile Grid 2x2 & iPad/Desktop 4x1 */}
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         
         {/* Total Trades Card */}
-        <div className="bg-gradient-to-br from-purple-950 via-zinc-900 to-zinc-900 text-white p-5 rounded-3xl border border-purple-800/60 shadow-sm flex flex-col justify-between space-y-3">
+        <div className="bg-gradient-to-br from-purple-950 via-zinc-900 to-zinc-900 text-white p-4 sm:p-5 rounded-3xl border border-purple-800/60 shadow-sm flex flex-col justify-between space-y-2 sm:space-y-3">
           <div className="flex justify-between items-center">
-            <span className="text-xs text-purple-300 uppercase tracking-wider font-bold">Posizioni Totali</span>
-            <div className="p-2 bg-purple-500/20 rounded-xl border border-purple-500/30">
-              <Activity className="w-4 h-4 text-purple-400" />
+            <span className="text-[10px] sm:text-xs text-purple-300 uppercase tracking-wider font-bold">Posizioni Totali</span>
+            <div className="p-1.5 sm:p-2 bg-purple-500/20 rounded-xl border border-purple-500/30">
+              <Activity className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-400" />
             </div>
           </div>
           <div>
-            <span className="text-2xl font-extrabold font-mono block">{totalTradesCount}</span>
-            <span className="text-[11px] text-zinc-400">
+            <span className="text-xl sm:text-2xl font-extrabold font-mono block">{totalTradesCount}</span>
+            <span className="text-[10px] sm:text-[11px] text-zinc-400">
               {openTradesCount} Aperte • {closedTrades.length} Chiuse
             </span>
           </div>
         </div>
 
         {/* Real Win Rate Card */}
-        <div className="bg-gradient-to-br from-emerald-950 via-zinc-900 to-zinc-900 text-white p-5 rounded-3xl border border-emerald-800/60 shadow-sm flex flex-col justify-between space-y-3">
+        <div className="bg-gradient-to-br from-emerald-950 via-zinc-900 to-zinc-900 text-white p-4 sm:p-5 rounded-3xl border border-emerald-800/60 shadow-sm flex flex-col justify-between space-y-2 sm:space-y-3">
           <div className="flex justify-between items-center">
-            <span className="text-xs text-emerald-300 uppercase tracking-wider font-bold">Win Rate Reale</span>
-            <div className="p-2 bg-emerald-500/20 rounded-xl border border-emerald-500/30">
-              <ArrowUpRight className="w-4 h-4 text-emerald-400" />
+            <span className="text-[10px] sm:text-xs text-emerald-300 uppercase tracking-wider font-bold">Win Rate Reale</span>
+            <div className="p-1.5 sm:p-2 bg-emerald-500/20 rounded-xl border border-emerald-500/30">
+              <ArrowUpRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400" />
             </div>
           </div>
           <div>
-            <span className="text-2xl font-extrabold font-mono text-emerald-400 block">{realWinRate}%</span>
-            <span className="text-[11px] text-zinc-400">
+            <span className="text-xl sm:text-2xl font-extrabold font-mono text-emerald-400 block">{realWinRate}%</span>
+            <span className="text-[10px] sm:text-[11px] text-zinc-400">
               {winningTrades.length} W / {losingTrades.length} L su posizioni chiuse
             </span>
           </div>
         </div>
 
         {/* Real Cumulative PnL Card */}
-        <div className={`bg-gradient-to-br text-white p-5 rounded-3xl border shadow-sm flex flex-col justify-between space-y-3 ${
+        <div className={`bg-gradient-to-br text-white p-4 sm:p-5 rounded-3xl border shadow-sm flex flex-col justify-between space-y-2 sm:space-y-3 ${
           totalPnlVal >= 0
             ? 'from-emerald-950 via-zinc-900 to-zinc-900 border-emerald-800/60'
             : 'from-rose-950 via-zinc-900 to-zinc-900 border-rose-800/60'
         }`}>
           <div className="flex justify-between items-center">
-            <span className="text-xs text-indigo-300 uppercase tracking-wider font-bold">PnL Cumulato Reale</span>
-            <div className="p-2 bg-indigo-500/20 rounded-xl border border-indigo-500/30">
-              <DollarSign className="w-4 h-4 text-indigo-400" />
+            <span className="text-[10px] sm:text-xs text-indigo-300 uppercase tracking-wider font-bold">PnL Cumulato Reale</span>
+            <div className="p-1.5 sm:p-2 bg-indigo-500/20 rounded-xl border border-indigo-500/30">
+              <DollarSign className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-indigo-400" />
             </div>
           </div>
           <div>
-            <span className={`text-2xl font-extrabold font-mono block ${totalPnlVal >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+            <span className={`text-xl sm:text-2xl font-extrabold font-mono block ${totalPnlVal >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
               {realPnlDisplay}
             </span>
-            <span className="text-[11px] text-zinc-400">
+            <span className="text-[10px] sm:text-[11px] text-zinc-400">
               Rendimento complessivo portafoglio
             </span>
           </div>
         </div>
 
         {/* Real Profit Factor Card */}
-        <div className="bg-gradient-to-br from-indigo-950 via-zinc-900 to-zinc-900 text-white p-5 rounded-3xl border border-indigo-800/60 shadow-sm flex flex-col justify-between space-y-3">
+        <div className="bg-gradient-to-br from-indigo-950 via-zinc-900 to-zinc-900 text-white p-4 sm:p-5 rounded-3xl border border-indigo-800/60 shadow-sm flex flex-col justify-between space-y-2 sm:space-y-3">
           <div className="flex justify-between items-center">
-            <span className="text-xs text-indigo-300 uppercase tracking-wider font-bold">Profit Factor</span>
-            <div className="p-2 bg-indigo-500/20 rounded-xl border border-indigo-500/30">
-              <Award className="w-4 h-4 text-indigo-400" />
+            <span className="text-[10px] sm:text-xs text-indigo-300 uppercase tracking-wider font-bold">Profit Factor</span>
+            <div className="p-1.5 sm:p-2 bg-indigo-500/20 rounded-xl border border-indigo-500/30">
+              <Award className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-indigo-400" />
             </div>
           </div>
           <div>
-            <span className="text-2xl font-extrabold font-mono text-indigo-300 block">{realProfitFactor}</span>
-            <span className="text-[11px] text-zinc-400">
+            <span className="text-xl sm:text-2xl font-extrabold font-mono text-indigo-300 block">{realProfitFactor}</span>
+            <span className="text-[10px] sm:text-[11px] text-zinc-400">
               Rapporto Vincite / Perdite
             </span>
           </div>
@@ -297,39 +294,39 @@ export default function TradingView({ tradingLogs = [], onAddTradingLog, onDelet
         logs={{ trading: safeLogs }}
       />
 
-      {/* Trades Table */}
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 shadow-sm overflow-hidden">
+      {/* Trades Table - Responsive Overflow */}
+      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-4 sm:p-6 shadow-sm overflow-hidden">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold text-zinc-900 dark:text-white flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5 text-purple-500" /> Registro Ordini & Performance ({filteredLogs.length})
+          <h3 className="text-base sm:text-lg font-bold text-zinc-900 dark:text-white flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" /> Registro Ordini & Performance ({filteredLogs.length})
           </h3>
 
           {selectedDate && (
             <button
               onClick={() => setSelectedDate(null)}
-              className="px-3 py-1 bg-purple-500/10 hover:bg-purple-500/20 text-purple-600 dark:text-purple-400 font-mono text-xs font-bold rounded-xl flex items-center gap-1 transition-all"
+              className="px-2.5 py-1 bg-purple-500/10 hover:bg-purple-500/20 text-purple-600 dark:text-purple-400 font-mono text-[11px] font-bold rounded-xl flex items-center gap-1 transition-all"
             >
-              <Filter className="w-3.5 h-3.5" /> Filtrato: {selectedDate} (Reset)
+              <Filter className="w-3 h-3" /> Filtrato: {selectedDate}
             </button>
           )}
         </div>
 
         {filteredLogs.length === 0 ? (
-          <p className="text-sm text-zinc-500 text-center py-8">Nessun trade registrato {selectedDate ? `il ${selectedDate}` : 'in archivio'}.</p>
+          <p className="text-xs sm:text-sm text-zinc-500 text-center py-8">Nessun trade registrato {selectedDate ? `il ${selectedDate}` : 'in archivio'}.</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+          <div className="overflow-x-auto min-w-full">
+            <table className="w-full text-left border-collapse min-w-[640px]">
               <thead>
-                <tr className="border-b border-zinc-200 dark:border-zinc-800 text-xs uppercase text-zinc-400 font-semibold">
-                  <th className="py-3 px-4">Data / Ora</th>
-                  <th className="py-3 px-4">Asset</th>
-                  <th className="py-3 px-4">Tipo</th>
-                  <th className="py-3 px-4">Prezzo Entry</th>
-                  <th className="py-3 px-4">Take Profit</th>
-                  <th className="py-3 px-4">Stop Loss</th>
-                  <th className="py-3 px-4">Stato</th>
-                  <th className="py-3 px-4">PnL</th>
-                  <th className="py-3 px-4 text-right">Azioni</th>
+                <tr className="border-b border-zinc-200 dark:border-zinc-800 text-[11px] uppercase text-zinc-400 font-semibold">
+                  <th className="py-3 px-3 sm:px-4">Data / Ora</th>
+                  <th className="py-3 px-3 sm:px-4">Asset</th>
+                  <th className="py-3 px-3 sm:px-4">Tipo</th>
+                  <th className="py-3 px-3 sm:px-4">Prezzo Entry</th>
+                  <th className="py-3 px-3 sm:px-4">Take Profit</th>
+                  <th className="py-3 px-3 sm:px-4">Stop Loss</th>
+                  <th className="py-3 px-3 sm:px-4">Stato</th>
+                  <th className="py-3 px-3 sm:px-4">PnL</th>
+                  <th className="py-3 px-3 sm:px-4 text-right">Azioni</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/60 text-xs font-medium">
@@ -338,15 +335,15 @@ export default function TradingView({ tradingLogs = [], onAddTradingLog, onDelet
                   const isBuy = tr.type === 'BUY' || tr.type === 'LONG';
                   return (
                     <tr key={tr.id || Math.random()} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition-all">
-                      <td className="py-4 px-4 font-mono text-zinc-400 whitespace-nowrap flex items-center gap-1.5">
-                        <Clock className="w-3.5 h-3.5 text-zinc-500" />
+                      <td className="py-3.5 px-3 sm:px-4 font-mono text-zinc-400 whitespace-nowrap flex items-center gap-1.5 text-[11px]">
+                        <Clock className="w-3 h-3 text-zinc-500" />
                         {tr.timestamp || 'N/D'}
                       </td>
-                      <td className="py-4 px-4 font-bold text-zinc-900 dark:text-white font-mono">
+                      <td className="py-3.5 px-3 sm:px-4 font-bold text-zinc-900 dark:text-white font-mono text-xs">
                         {tr.ticker || 'N/D'}
                       </td>
-                      <td className="py-4 px-4">
-                        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold ${
+                      <td className="py-3.5 px-3 sm:px-4">
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold ${
                           isBuy
                             ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
                             : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
@@ -355,38 +352,38 @@ export default function TradingView({ tradingLogs = [], onAddTradingLog, onDelet
                           {tr.type || 'BUY'}
                         </span>
                       </td>
-                      <td className="py-4 px-4 font-mono text-zinc-700 dark:text-zinc-300">
+                      <td className="py-3.5 px-3 sm:px-4 font-mono text-zinc-700 dark:text-zinc-300 text-xs">
                         {formatPrice(tr.entryPrice || tr.entry_price)}
                       </td>
-                      <td className="py-4 px-4 font-mono text-emerald-600 dark:text-emerald-400">
+                      <td className="py-3.5 px-3 sm:px-4 font-mono text-emerald-600 dark:text-emerald-400 text-xs">
                         {formatPrice(tr.takeProfit || tr.take_profit)}
                       </td>
-                      <td className="py-4 px-4 font-mono text-rose-500">
+                      <td className="py-3.5 px-3 sm:px-4 font-mono text-rose-500 text-xs">
                         {formatPrice(tr.stopLoss || tr.stop_loss)}
                       </td>
-                      <td className="py-4 px-4">
+                      <td className="py-3.5 px-3 sm:px-4">
                         <span className="px-2 py-0.5 text-[10px] font-semibold bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 rounded-md">
                           {tr.status || 'APERTO'}
                         </span>
                       </td>
-                      <td className="py-4 px-4 font-mono font-bold text-emerald-500">
-                        {tr.pnl || '0.0%'}
+                      <td className="py-3.5 px-3 sm:px-4 font-mono font-bold text-emerald-500 text-xs">
+                        {tr.pnl || '$0'}
                       </td>
-                      <td className="py-4 px-4 text-right space-x-1 whitespace-nowrap">
+                      <td className="py-3.5 px-3 sm:px-4 text-right space-x-1 whitespace-nowrap">
                         <button
                           onClick={() => handleStartEdit(tr)}
-                          className="px-2.5 py-1.5 text-xs font-bold text-purple-600 dark:text-purple-400 bg-purple-500/10 hover:bg-purple-500/20 rounded-xl transition-all inline-flex items-center gap-1"
+                          className="px-2 py-1 text-[11px] font-bold text-purple-600 dark:text-purple-400 bg-purple-500/10 hover:bg-purple-500/20 rounded-xl transition-all inline-flex items-center gap-1"
                           title="Modifica trade con Assistant AI"
                         >
-                          <Sparkles className="w-3.5 h-3.5" />
+                          <Sparkles className="w-3 h-3" />
                           <span>Modifica AI</span>
                         </button>
                         <button
                           onClick={() => onDeleteTradingLog(tr.id)}
-                          className="p-1.5 text-zinc-400 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-all"
+                          className="p-1 text-zinc-400 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-all"
                           title="Elimina trade"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </td>
                     </tr>
@@ -400,9 +397,9 @@ export default function TradingView({ tradingLogs = [], onAddTradingLog, onDelet
 
       {/* Manual Add Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4">
-            <h3 className="text-lg font-bold text-zinc-900 dark:text-white">Aggiungi Trade Manuale</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-5 sm:p-6 max-w-md w-full shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <h3 className="text-base sm:text-lg font-bold text-zinc-900 dark:text-white">Aggiungi Trade Manuale</h3>
             <form onSubmit={handleManualAdd} className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -413,7 +410,7 @@ export default function TradingView({ tradingLogs = [], onAddTradingLog, onDelet
                     placeholder="MNQ1!"
                     value={ticker}
                     onChange={(e) => setTicker(e.target.value)}
-                    className="w-full p-3 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-sm font-medium dark:text-white uppercase"
+                    className="w-full p-2.5 sm:p-3 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs sm:text-sm font-medium dark:text-white uppercase"
                   />
                 </div>
                 <div>
@@ -421,7 +418,7 @@ export default function TradingView({ tradingLogs = [], onAddTradingLog, onDelet
                   <select
                     value={type}
                     onChange={(e) => setType(e.target.value)}
-                    className="w-full p-3 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-sm font-medium dark:text-white"
+                    className="w-full p-2.5 sm:p-3 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs sm:text-sm font-medium dark:text-white"
                   >
                     <option value="BUY">BUY / LONG</option>
                     <option value="SELL">SELL / SHORT</option>
@@ -436,7 +433,7 @@ export default function TradingView({ tradingLogs = [], onAddTradingLog, onDelet
                     type="number"
                     value={entryPrice}
                     onChange={(e) => setEntryPrice(e.target.value)}
-                    className="w-full p-2.5 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs font-mono dark:text-white"
+                    className="w-full p-2 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs font-mono dark:text-white"
                   />
                 </div>
                 <div>
@@ -445,7 +442,7 @@ export default function TradingView({ tradingLogs = [], onAddTradingLog, onDelet
                     type="number"
                     value={takeProfit}
                     onChange={(e) => setTakeProfit(e.target.value)}
-                    className="w-full p-2.5 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs font-mono text-emerald-500"
+                    className="w-full p-2 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs font-mono text-emerald-500"
                   />
                 </div>
                 <div>
@@ -454,7 +451,7 @@ export default function TradingView({ tradingLogs = [], onAddTradingLog, onDelet
                     type="number"
                     value={stopLoss}
                     onChange={(e) => setStopLoss(e.target.value)}
-                    className="w-full p-2.5 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs font-mono text-rose-500"
+                    className="w-full p-2 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs font-mono text-rose-500"
                   />
                 </div>
               </div>
@@ -465,7 +462,7 @@ export default function TradingView({ tradingLogs = [], onAddTradingLog, onDelet
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Analisi tecnica..."
-                  className="w-full p-3 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-sm font-medium dark:text-white h-20"
+                  className="w-full p-3 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs sm:text-sm font-medium dark:text-white h-20"
                 />
               </div>
 
@@ -473,13 +470,13 @@ export default function TradingView({ tradingLogs = [], onAddTradingLog, onDelet
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="flex-1 py-3 bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-200 font-bold rounded-xl text-sm"
+                  className="flex-1 py-2.5 sm:py-3 bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-200 font-bold rounded-xl text-xs sm:text-sm"
                 >
                   Annulla
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-3 bg-purple-600 text-white font-bold rounded-xl text-sm"
+                  className="flex-1 py-2.5 sm:py-3 bg-purple-600 text-white font-bold rounded-xl text-xs sm:text-sm"
                 >
                   Salva Trade
                 </button>
@@ -491,26 +488,26 @@ export default function TradingView({ tradingLogs = [], onAddTradingLog, onDelet
 
       {/* Edit Trade Modal with Natural Language AI Instruction Bar */}
       {editingTrade && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-zinc-950/85 backdrop-blur-md overflow-y-auto">
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl space-y-5 my-auto max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 bg-zinc-950/85 backdrop-blur-md overflow-y-auto">
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-5 sm:p-8 max-w-lg w-full shadow-2xl space-y-4 sm:space-y-5 my-auto max-h-[90vh] overflow-y-auto">
             
             <div className="flex justify-between items-center border-b border-zinc-100 dark:border-zinc-800 pb-3">
               <div>
-                <span className="text-xs font-bold text-purple-500 uppercase tracking-widest block">Assistant AI Real-time Edit</span>
-                <h3 className="text-lg font-bold text-zinc-900 dark:text-white font-mono">
+                <span className="text-[10px] sm:text-xs font-bold text-purple-500 uppercase tracking-widest block">Assistant AI Real-time Edit</span>
+                <h3 className="text-base sm:text-lg font-bold text-zinc-900 dark:text-white font-mono">
                   Modifica Trade [{editingTrade.ticker || ''}]
                 </h3>
               </div>
-              <button onClick={() => setEditingTrade(null)} className="p-2 text-zinc-400 hover:text-white rounded-xl">
+              <button onClick={() => setEditingTrade(null)} className="p-1.5 text-zinc-400 hover:text-white rounded-xl">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* AI Prompt Box: Tell AI how to modify trade */}
-            <div className="bg-gradient-to-r from-purple-500/10 via-indigo-500/10 to-teal-500/10 border border-purple-500/30 rounded-2xl p-4 space-y-2">
+            {/* AI Prompt Box */}
+            <div className="bg-gradient-to-r from-purple-500/10 via-indigo-500/10 to-teal-500/10 border border-purple-500/30 rounded-2xl p-3 sm:p-4 space-y-2">
               <label className="block text-xs font-bold text-purple-700 dark:text-purple-300 flex items-center gap-1.5">
-                <Sparkles className="w-4 h-4 text-purple-500 animate-spin" />
-                <span>{isEn ? 'Instruct Assistant AI to modify this trade:' : 'Comunica ad Assistant AI la modifica del trade:'}</span>
+                <Sparkles className="w-3.5 h-3.5 text-purple-500 animate-spin" />
+                <span>{isEn ? 'Instruct Assistant AI to modify this trade:' : 'Comunica ad Assistant AI la modifica:'}</span>
               </label>
 
               <div className="flex gap-2">
@@ -518,14 +515,14 @@ export default function TradingView({ tradingLogs = [], onAddTradingLog, onDelet
                   type="text"
                   value={aiEditPrompt}
                   onChange={(e) => setAiEditPrompt(e.target.value)}
-                  placeholder={isEn ? "e.g. '5 MNQ contracts hit Full TP with +$3,000 profit'" : "es. '5 contratti MNQ hanno preso Full TP con +3000$ di profitto'"}
-                  className="flex-1 p-3 bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs font-medium dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  placeholder={isEn ? "e.g. '5 MNQ contracts hit Full TP +$3,000'" : "es. '5 contratti MNQ hanno preso Full TP +3000$'"}
+                  className="flex-1 p-2.5 sm:p-3 bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs font-medium dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
                 <button
                   type="button"
                   onClick={handleApplyAiEdit}
                   disabled={!aiEditPrompt.trim() || isAiProcessing}
-                  className="px-4 py-3 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-bold rounded-xl text-xs flex items-center gap-1 shrink-0 shadow-md shadow-purple-500/20"
+                  className="px-3 sm:px-4 py-2.5 sm:py-3 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-bold rounded-xl text-xs flex items-center gap-1 shrink-0 shadow-md shadow-purple-500/20"
                 >
                   {isAiProcessing ? <span className="animate-pulse">AI...</span> : <Send className="w-3.5 h-3.5" />}
                 </button>
@@ -541,7 +538,7 @@ export default function TradingView({ tradingLogs = [], onAddTradingLog, onDelet
                     required
                     value={editTicker}
                     onChange={(e) => setEditTicker(e.target.value)}
-                    className="w-full p-3 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-sm font-mono font-bold dark:text-white uppercase"
+                    className="w-full p-2.5 sm:p-3 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs sm:text-sm font-mono font-bold dark:text-white uppercase"
                   />
                 </div>
                 <div>
@@ -549,7 +546,7 @@ export default function TradingView({ tradingLogs = [], onAddTradingLog, onDelet
                   <select
                     value={editType}
                     onChange={(e) => setEditType(e.target.value)}
-                    className="w-full p-3 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-sm font-medium dark:text-white"
+                    className="w-full p-2.5 sm:p-3 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs sm:text-sm font-medium dark:text-white"
                   >
                     <option value="BUY">BUY / LONG</option>
                     <option value="SELL">SELL / SHORT</option>
@@ -565,7 +562,7 @@ export default function TradingView({ tradingLogs = [], onAddTradingLog, onDelet
                     step="any"
                     value={editEntryPrice}
                     onChange={(e) => setEditEntryPrice(e.target.value)}
-                    className="w-full p-2.5 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs font-mono dark:text-white"
+                    className="w-full p-2 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs font-mono dark:text-white"
                   />
                 </div>
                 <div>
@@ -575,7 +572,7 @@ export default function TradingView({ tradingLogs = [], onAddTradingLog, onDelet
                     step="any"
                     value={editTakeProfit}
                     onChange={(e) => setEditTakeProfit(e.target.value)}
-                    className="w-full p-2.5 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs font-mono text-emerald-500"
+                    className="w-full p-2 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs font-mono text-emerald-500"
                   />
                 </div>
                 <div>
@@ -585,7 +582,7 @@ export default function TradingView({ tradingLogs = [], onAddTradingLog, onDelet
                     step="any"
                     value={editStopLoss}
                     onChange={(e) => setEditStopLoss(e.target.value)}
-                    className="w-full p-2.5 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs font-mono text-rose-500"
+                    className="w-full p-2 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs font-mono text-rose-500"
                   />
                 </div>
               </div>
@@ -596,7 +593,7 @@ export default function TradingView({ tradingLogs = [], onAddTradingLog, onDelet
                   <select
                     value={editStatus}
                     onChange={(e) => setEditStatus(e.target.value)}
-                    className="w-full p-3 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-sm font-medium dark:text-white"
+                    className="w-full p-2.5 sm:p-3 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs sm:text-sm font-medium dark:text-white"
                   >
                     <option value="APERTO">APERTO</option>
                     <option value="CHIUSO">CHIUSO</option>
@@ -609,8 +606,8 @@ export default function TradingView({ tradingLogs = [], onAddTradingLog, onDelet
                     type="text"
                     value={editPnl}
                     onChange={(e) => setEditPnl(e.target.value)}
-                    placeholder="es. +$3,000 (+1.5%)"
-                    className="w-full p-3 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-sm font-mono font-bold text-emerald-500 dark:text-emerald-400"
+                    placeholder="es. +$3,000"
+                    className="w-full p-2.5 sm:p-3 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs sm:text-sm font-mono font-bold text-emerald-500 dark:text-emerald-400"
                   />
                 </div>
               </div>
@@ -620,7 +617,7 @@ export default function TradingView({ tradingLogs = [], onAddTradingLog, onDelet
                 <textarea
                   value={editNotes}
                   onChange={(e) => setEditNotes(e.target.value)}
-                  className="w-full p-3 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-sm font-medium dark:text-white h-20"
+                  className="w-full p-3 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs sm:text-sm font-medium dark:text-white h-20"
                 />
               </div>
 
@@ -628,15 +625,15 @@ export default function TradingView({ tradingLogs = [], onAddTradingLog, onDelet
                 <button
                   type="button"
                   onClick={() => setEditingTrade(null)}
-                  className="flex-1 py-3 bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-200 font-bold rounded-xl text-sm"
+                  className="flex-1 py-2.5 sm:py-3 bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-200 font-bold rounded-xl text-xs sm:text-sm"
                 >
                   Annulla
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-3 bg-purple-600 text-white font-bold rounded-xl text-sm flex items-center justify-center gap-1"
+                  className="flex-1 py-2.5 sm:py-3 bg-purple-600 text-white font-bold rounded-xl text-xs sm:text-sm flex items-center justify-center gap-1"
                 >
-                  <Check className="w-4 h-4" /> Conferma & Salva
+                  <Check className="w-4 h-4" /> Salva
                 </button>
               </div>
             </form>
