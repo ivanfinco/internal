@@ -1,3 +1,5 @@
+import { parseScientificBreakdown } from './nutritionEngine';
+
 /**
  * Assistant AI Powered Parser for Ivan's Personal Dashboard
  * Supports Multilingual Response Generation, Ingredient Provenance Breakdown, & Natural Language Edits
@@ -184,80 +186,6 @@ Calcola in modo ESTREMAMENTE ACCURATO e SCIENTIFICO (basato su banche dati nutri
 
 Fornisci ANCHE la scomposizione esatta per ciascun ingrediente citato nel pasto (es. "Pasta 100g", "Grana 20g", "Petto di pollo 200g").
 
-Schema JSON Cibo:
-{
-  "category": "food",
-  "type": "log_entry",
-  "log": {
-    "mealType": "${lang === 'EN' ? 'Breakfast' : 'Colazione'}" | "${lang === 'EN' ? 'Lunch' : 'Pranzo'}" | "${lang === 'EN' ? 'Dinner' : 'Cena'}" | "${lang === 'EN' ? 'Snack' : 'Spuntino'}",
-    "description": "descrizione",
-    "calories": 460,
-    "protein": 64,
-    "fats": 8,
-    "carbs": 28,
-    "micros": {
-      "vitaminA": 120, "vitaminC": 30, "vitaminD": 2, "iron": 3.5, "calcium": 150, "zinc": 2.5, "magnesium": 65, "potassium": 500
-    },
-    "ingredientsBreakdown": [
-      {
-        "name": "Ingredient Name (Weight)",
-        "calories": 300,
-        "protein": 30,
-        "fats": 5,
-        "carbs": 40,
-        "micros": { "vitaminA": 100, "vitaminC": 20, "vitaminD": 0, "iron": 2, "calcium": 80, "zinc": 1.5, "magnesium": 40, "potassium": 300 }
-      }
-    ]
-  },
-  "message": "${lang === 'EN' ? '✅ **Food logged with Assistant AI!**' : '✅ **Cibo registrato con Assistant AI!**'}\\n\\n..."
-}
-
-SE È ALLENAMENTO (Training):
-{
-  "category": "training",
-  "type": "log_entry",
-  "log": {
-    "title": "Titolo Sessione",
-    "feeling": "🔥 In gran forma" | "⚡ Molto Carico" | "😴 Affaticato",
-    "energyLevel": "9/10",
-    "exercises": [
-      { "name": "Squat", "sets": 4, "reps": 8, "weight": 110, "note": "..." }
-    ],
-    "notes": "note"
-  },
-  "message": "..."
-}
-
-SE È TRADING (Trading):
-{
-  "category": "trading",
-  "type": "log_entry",
-  "log": {
-    "ticker": "BTC/USDT",
-    "type": "BUY" | "SELL",
-    "entryPrice": 62500,
-    "takeProfit": 66000,
-    "stopLoss": 60000,
-    "size": "1 Posizione",
-    "status": "APERTO",
-    "notes": "...",
-    "pnl": "0.0%"
-  },
-  "message": "..."
-}
-
-SE È UNA DOMANDA SUL PASSATO O RIGUARDA GLI STORICI:
-Ecco lo storico attuale per riferimento:
-Food logs attuali: ${JSON.stringify(currentLogs.food.slice(0, 3))}
-Training logs attuali: ${JSON.stringify(currentLogs.training.slice(0, 3))}
-Trading logs attuali: ${JSON.stringify(currentLogs.trading.slice(0, 3))}
-
-Schema JSON Domanda:
-{
-  "type": "query_response",
-  "message": "Risposta amichevole e dettagliata nella lingua richiesta (${lang === 'EN' ? 'ENGLISH' : 'ITALIANO'})."
-}
-
 Richiesta dell'utente Ivan: "${userText}"`;
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
@@ -291,32 +219,44 @@ Richiesta dell'utente Ivan: "${userText}"`;
 
 function fallbackLocalParser(text, timestamp, lang = 'IT') {
   const isEn = lang === 'EN';
+  const breakdown = parseScientificBreakdown(text);
+
+  const cal = breakdown.reduce((s, i) => s + (i.calories || 0), 0);
+  const pro = Math.round(breakdown.reduce((s, i) => s + (i.protein || 0), 0) * 10) / 10;
+  const fat = Math.round(breakdown.reduce((s, i) => s + (i.fats || 0), 0) * 10) / 10;
+  const carb = Math.round(breakdown.reduce((s, i) => s + (i.carbs || 0), 0) * 10) / 10;
+
+  const micros = breakdown.reduce((acc, i) => {
+    const m = i.micros || {};
+    return {
+      vitaminA: acc.vitaminA + (m.vitaminA || 0),
+      vitaminC: acc.vitaminC + (m.vitaminC || 0),
+      vitaminD: acc.vitaminD + (m.vitaminD || 0),
+      iron: Math.round((acc.iron + (m.iron || 0)) * 10) / 10,
+      calcium: acc.calcium + (m.calcium || 0),
+      zinc: Math.round((acc.zinc + (m.zinc || 0)) * 10) / 10,
+      magnesium: acc.magnesium + (m.magnesium || 0),
+      potassium: acc.potassium + (m.potassium || 0)
+    };
+  }, { vitaminA: 0, vitaminC: 0, vitaminD: 0, iron: 0, calcium: 0, zinc: 0, magnesium: 0, potassium: 0 });
+
   return {
     type: 'log_entry',
     category: 'food',
     log: {
       id: 'f_' + Date.now(),
       timestamp,
-      mealType: isEn ? 'Lunch' : 'Pranzo',
+      mealType: isEn ? 'Breakfast' : 'Colazione',
       description: text,
-      calories: 450,
-      protein: 30,
-      fats: 12,
-      carbs: 45,
-      micros: { vitaminA: 150, vitaminC: 25, vitaminD: 2, iron: 2.5, calcium: 120, zinc: 1.8, magnesium: 45, potassium: 320 },
-      ingredientsBreakdown: [
-        {
-          name: text,
-          calories: 450,
-          protein: 30,
-          fats: 12,
-          carbs: 45,
-          micros: { vitaminA: 150, vitaminC: 25, vitaminD: 2, iron: 2.5, calcium: 120, zinc: 1.8, magnesium: 45, potassium: 320 }
-        }
-      ]
+      calories: cal,
+      protein: pro,
+      fats: fat,
+      carbs: carb,
+      micros,
+      ingredientsBreakdown: breakdown
     },
     message: isEn 
-      ? `✅ **Food logged!**\n\n📝 **Description**: ${text}\n🔥 **Calories**: 450 kcal | 🥩 **Protein**: 30g | 🥑 **Fats**: 12g | 🍞 **Carbs**: 45g`
-      : `✅ **Pasto registrato!**\n\n📝 **Descrizione**: ${text}\n🔥 **Calorie**: 450 kcal | 🥩 **Proteine**: 30g | 🥑 **Grassi**: 12g | 🍞 **Carbo**: 45g`
+      ? `✅ **Food logged!**\n\n📝 **Description**: ${text}\n🔥 **Calories**: ${cal} kcal | 🥩 **Protein**: ${pro}g | 🥑 **Fats**: ${fat}g | 🍞 **Carbs**: ${carb}g`
+      : `✅ **Pasto registrato!**\n\n📝 **Descrizione**: ${text}\n🔥 **Calorie**: ${cal} kcal | 🥩 **Proteine**: ${pro}g | 🥑 **Grassi**: ${fat}g | 🍞 **Carbo**: ${carb}g`
   };
 }
