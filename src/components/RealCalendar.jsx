@@ -81,9 +81,10 @@ export default function RealCalendar({
     return `${y}-${m}-${day}`;
   }
 
-  // Logs grouped by date
+  // Logs grouped by date safely
   const foodByDate = {};
   (logs.food || []).forEach(item => {
+    if (!item || typeof item.timestamp !== 'string') return;
     const d = item.timestamp.split(' ')[0];
     if (!foodByDate[d]) foodByDate[d] = { calories: 0, protein: 0, items: [] };
     foodByDate[d].calories += item.calories || 0;
@@ -93,6 +94,7 @@ export default function RealCalendar({
 
   const trainingByDate = {};
   (logs.training || []).forEach(item => {
+    if (!item || typeof item.timestamp !== 'string') return;
     const d = item.timestamp.split(' ')[0];
     if (!trainingByDate[d]) trainingByDate[d] = [];
     trainingByDate[d].push(item);
@@ -100,6 +102,7 @@ export default function RealCalendar({
 
   const tradingByDate = {};
   (logs.trading || []).forEach(item => {
+    if (!item || typeof item.timestamp !== 'string') return;
     const d = item.timestamp.split(' ')[0];
     if (!tradingByDate[d]) tradingByDate[d] = [];
     tradingByDate[d].push(item);
@@ -214,19 +217,19 @@ export default function RealCalendar({
               <div className="space-y-1 mt-1">
                 {(section === 'food' || section === 'all') && hasFood && (
                   <div className="px-1.5 py-0.5 rounded-md bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-[10px] font-mono font-bold leading-tight truncate">
-                    🔥 {hasFood.calories} kcal ({hasFood.protein}g P)
+                    🔥 {Math.round(hasFood.calories)} kcal ({Math.round(hasFood.protein * 10) / 10}g P)
                   </div>
                 )}
 
                 {(section === 'training' || section === 'all') && hasTraining && (
                   <div className="px-1.5 py-0.5 rounded-md bg-blue-500/15 text-blue-700 dark:text-blue-300 text-[10px] font-bold leading-tight truncate">
-                    🏋️ {hasTraining[0].title.replace('Workout ', '').replace('Allenamento ', '')}
+                    🏋️ {(hasTraining[0].title || 'Workout').replace('Workout ', '').replace('Allenamento ', '')}
                   </div>
                 )}
 
                 {(section === 'trading' || section === 'all') && hasTrading && (
                   <div className="px-1.5 py-0.5 rounded-md bg-purple-500/15 text-purple-700 dark:text-purple-300 text-[10px] font-bold leading-tight truncate">
-                    📈 {hasTrading.length} Trade ({hasTrading[0].ticker})
+                    📈 {hasTrading.length} Trade ({hasTrading[0].ticker || 'BTC'})
                   </div>
                 )}
               </div>
@@ -272,10 +275,10 @@ export default function RealCalendar({
                       <div key={f.id} className="p-3 bg-zinc-50 dark:bg-zinc-800/60 rounded-2xl border border-zinc-200/60 dark:border-zinc-700/60 text-xs">
                         <div className="flex justify-between font-semibold text-zinc-900 dark:text-white">
                           <span>[{f.mealType}] {f.description}</span>
-                          <span className="font-mono text-emerald-500">{f.calories} kcal</span>
+                          <span className="font-mono text-emerald-500">{Math.round(f.calories)} kcal</span>
                         </div>
                         <div className="text-[11px] text-zinc-400 font-mono mt-1">
-                          🥩 Proteine: {f.protein}g | 🥑 Grassi: {f.fats}g | 🍞 Carbo: {f.carbs}g
+                          🥩 Proteine: {Math.round((f.protein || 0) * 10) / 10}g | 🥑 Grassi: {Math.round((f.fats || 0) * 10) / 10}g | 🍞 Carbo: {Math.round((f.carbs || 0) * 10) / 10}g
                         </div>
                       </div>
                     ))}
@@ -302,7 +305,7 @@ export default function RealCalendar({
                           <span className="text-blue-500">{t.feeling}</span>
                         </div>
                         <div className="text-[11px] text-zinc-400">
-                          Esercizi: {t.exercises.map(e => `${e.name} ${e.sets}x${e.reps} (${e.weight}kg)`).join(', ')}
+                          Esercizi: {(t.exercises || []).map(e => `${e.name} ${e.sets}x${e.reps} (${e.weight}kg)`).join(', ')}
                         </div>
                       </div>
                     ))}
@@ -326,9 +329,9 @@ export default function RealCalendar({
                       <div key={tr.id} className="p-3 bg-zinc-50 dark:bg-zinc-800/60 rounded-2xl border border-zinc-200/60 dark:border-zinc-700/60 text-xs flex justify-between items-center">
                         <div>
                           <span className="font-bold text-zinc-900 dark:text-white font-mono">{tr.ticker} ({tr.type})</span>
-                          <div className="text-[11px] text-zinc-400 font-mono">Entry: ${tr.entryPrice} | TP: ${tr.takeProfit} | SL: ${tr.stopLoss}</div>
+                          <div className="text-[11px] text-zinc-400 font-mono">Entry: ${tr.entryPrice || tr.entry_price || 0} | TP: ${tr.takeProfit || tr.take_profit || 0} | SL: ${tr.stopLoss || tr.stop_loss || 0}</div>
                         </div>
-                        <span className="font-mono font-bold text-emerald-500">{tr.pnl}</span>
+                        <span className="font-mono font-bold text-emerald-500">{tr.pnl || '0.0%'}</span>
                       </div>
                     ))}
                   </div>
