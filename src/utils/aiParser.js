@@ -5,7 +5,15 @@ import { parseScientificBreakdown } from './nutritionEngine';
  * Supports Multilingual Response Generation, Ingredient Provenance Breakdown, & Natural Language Edits
  */
 
-const GEMINI_API_KEY = import.meta.env?.VITE_GEMINI_API_KEY || (typeof process !== 'undefined' ? process.env?.NEXT_PUBLIC_GEMINI_API_KEY : '');
+const getGeminiApiKey = () => {
+  if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_GEMINI_API_KEY) {
+    return import.meta.env.VITE_GEMINI_API_KEY;
+  }
+  if (typeof process !== 'undefined' && process.env && process.env.NEXT_PUBLIC_GEMINI_API_KEY) {
+    return process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+  }
+  return '';
+};
 
 export async function parseUserInput(rawText, currentLogs = { food: [], training: [], trading: [] }, lang = 'IT') {
   const text = rawText.trim();
@@ -24,18 +32,52 @@ export async function parseUserInput(rawText, currentLogs = { food: [], training
       return geminiResult;
     }
   } catch (err) {
-    console.warn("Assistant API call failed, using fallback:", err);
+    console.warn("Assistant Gemini API call failed, falling back to scientific engine:", err);
   }
 
   return fallbackLocalParser(text, timestamp, lang);
 }
 
-/**
- * Direct function to parse natural language Trade Editing instructions with Assistant AI
- */
-export async function parseTradeEditInstruction(instruction, currentTrade, lang = 'IT') {
-  if (!GEMINI_API_KEY) return null;
+async function callGeminiFetch(prompt) {
+  const apiKey = getGeminiApiKey();
+  if (!apiKey) {
+    throw new Error("Gemini API Key missing in environment variables");
+  }
 
+  const models = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+  let lastErr = null;
+
+  for (const model of models) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-goog-api-key': apiKey
+        },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }]
+        })
+      });
+
+      if (!response.ok) {
+        lastErr = new Error(`HTTP ${response.status} for ${model}`);
+        continue;
+      }
+
+      const data = await response.json();
+      const replyText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (replyText) return replyText;
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+
+  throw lastErr || new Error("Gemini API call failed for all models");
+}
+
+export async function parseTradeEditInstruction(instruction, currentTrade, lang = 'IT') {
   const prompt = `Sei l'AI Assistant per il Trading di Ivan.
 L'utente vuole modificare una posizione di Trading esistente utilizzando una richiesta in linguaggio naturale.
 
@@ -59,22 +101,8 @@ Esempio se l'utente dice "imposta il TP a 68000 e chiudi la posizione in profitt
 
 Rispondi ESCLUSIVAMENTE con il JSON valido (senza markdown o altro testo).`;
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
-  
   try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }]
-      })
-    });
-
-    if (!response.ok) throw new Error(`HTTP Error ${response.status}`);
-    const data = await response.json();
-    const replyText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!replyText) return null;
-
+    const replyText = await callGeminiFetch(prompt);
     const cleanJson = replyText.replace(/```json/g, '').replace(/```/g, '').trim();
     const parsed = JSON.parse(cleanJson);
 
@@ -89,12 +117,7 @@ Rispondi ESCLUSIVAMENTE con il JSON valido (senza markdown o altro testo).`;
   }
 }
 
-/**
- * Direct function to parse natural language Food Meal Editing instructions with Assistant AI
- */
 export async function parseFoodEditInstruction(instruction, currentFoodLog, lang = 'IT') {
-  if (!GEMINI_API_KEY) return null;
-
   const prompt = `Sei l'AI Assistant per la Nutrizione di Ivan.
 L'utente vuole modificare un pasto registrato esistente utilizzando una richiesta in linguaggio naturale.
 
@@ -130,22 +153,8 @@ Restituisci UNICAMENTE un oggetto JSON valido:
 
 Rispondi ESCLUSIVAMENTE con il JSON valido (senza markdown o altro testo).`;
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
-  
   try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }]
-      })
-    });
-
-    if (!response.ok) throw new Error(`HTTP Error ${response.status}`);
-    const data = await response.json();
-    const replyText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!replyText) return null;
-
+    const replyText = await callGeminiFetch(prompt);
     const cleanJson = replyText.replace(/```json/g, '').replace(/```/g, '').trim();
     const parsed = JSON.parse(cleanJson);
 
@@ -162,8 +171,6 @@ Rispondi ESCLUSIVAMENTE con il JSON valido (senza markdown o altro testo).`;
 }
 
 async function callGeminiApi(userText, currentLogs, timestamp, lang = 'IT') {
-  if (!GEMINI_API_KEY) return null;
-
   const langInstruction = lang === 'EN'
     ? 'IMPORTANT: Respond strictly in ENGLISH for all text messages, headings, and explanations.'
     : 'IMPORTANTE: Rispondi rigorosamente in ITALIANO per tutti i messaggi di testo, intestazioni e spiegazioni.';
@@ -186,26 +193,37 @@ Calcola in modo ESTREMAMENTE ACCURATO e SCIENTIFICO (basato su banche dati nutri
 
 Fornisci ANCHE la scomposizione esatta per ciascun ingrediente citato nel pasto (es. "Pasta 100g", "Grana 20g", "Petto di pollo 200g").
 
+Schema JSON Cibo:
+{
+  "category": "food",
+  "type": "log_entry",
+  "log": {
+    "mealType": "${lang === 'EN' ? 'Breakfast' : 'Colazione'}" | "${lang === 'EN' ? 'Lunch' : 'Pranzo'}" | "${lang === 'EN' ? 'Dinner' : 'Cena'}" | "${lang === 'EN' ? 'Snack' : 'Spuntino'}",
+    "description": "descrizione",
+    "calories": 460,
+    "protein": 64,
+    "fats": 8,
+    "carbs": 28,
+    "micros": {
+      "vitaminA": 120, "vitaminC": 30, "vitaminD": 2, "iron": 3.5, "calcium": 150, "zinc": 2.5, "magnesium": 65, "potassium": 500
+    },
+    "ingredientsBreakdown": [
+      {
+        "name": "Ingredient Name (Weight)",
+        "calories": 300,
+        "protein": 30,
+        "fats": 5,
+        "carbs": 40,
+        "micros": { "vitaminA": 100, "vitaminC": 20, "vitaminD": 0, "iron": 2, "calcium": 80, "zinc": 1.5, "magnesium": 40, "potassium": 300 }
+      }
+    ]
+  },
+  "message": "${lang === 'EN' ? '✅ **Food logged with Gemini AI!**' : '✅ **Cibo registrato con Gemini AI!**'}\\n\\n..."
+}
+
 Richiesta dell'utente Ivan: "${userText}"`;
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
-  
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }]
-    })
-  });
-
-  if (!response.ok) {
-    throw new Error(`Assistant API HTTP Error ${response.status}`);
-  }
-
-  const data = await response.json();
-  const replyText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!replyText) return null;
-
+  const replyText = await callGeminiFetch(prompt);
   const cleanJson = replyText.replace(/```json/g, '').replace(/```/g, '').trim();
   const parsed = JSON.parse(cleanJson);
 
