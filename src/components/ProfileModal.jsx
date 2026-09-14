@@ -7,6 +7,15 @@ export default function ProfileModal({ profile = {}, onSave, onClose, lang = 'IT
   const isEn = lang === 'EN';
   const fileInputRef = useRef(null);
 
+  // Lock body scroll while modal is open to prevent background movement
+  useEffect(() => {
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, []);
+
   const safeTargets = profile.targets || { calories: 2500, protein: 180, fats: 70, carbs: 280 };
 
   const [name, setName] = useState(profile.name || 'Ivan');
@@ -178,18 +187,18 @@ export default function ProfileModal({ profile = {}, onSave, onClose, lang = 'IT
   return (
     <div 
       onClick={onClose}
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-zinc-950/80 backdrop-blur-md overflow-y-auto cursor-pointer"
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 bg-zinc-950/80 backdrop-blur-md overflow-y-auto cursor-pointer"
     >
       {/* Modal Card Content */}
       <div 
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-lg bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 my-auto max-h-[90vh] overflow-y-auto cursor-default"
+        className="relative w-full max-w-lg bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-3xl p-5 sm:p-8 shadow-2xl space-y-5 sm:space-y-6 my-auto max-h-[90vh] overflow-y-auto cursor-default"
       >
         
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800/80 pb-4">
+        <div className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800/80 pb-3 sm:pb-4">
           <div>
-            <h3 className="text-lg font-bold text-zinc-900 dark:text-white tracking-tight">
+            <h3 className="text-base sm:text-lg font-bold text-zinc-900 dark:text-white tracking-tight">
               {t.title}
             </h3>
             <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
@@ -200,13 +209,13 @@ export default function ProfileModal({ profile = {}, onSave, onClose, lang = 'IT
           <button
             type="button"
             onClick={onClose}
-            className="p-2 text-zinc-400 hover:text-zinc-700 dark:hover:text-white rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all"
+            className="p-1.5 text-zinc-400 hover:text-zinc-700 dark:hover:text-white rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
           
           {/* Neutral Emoji / Photo Avatar Selector */}
           <div className="space-y-3">
@@ -220,10 +229,10 @@ export default function ProfileModal({ profile = {}, onSave, onClose, lang = 'IT
                   <img
                     src={avatar}
                     alt="Profile Avatar"
-                    className="w-16 h-16 rounded-2xl object-cover border-2 border-emerald-500/40 shadow-md"
+                    className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl object-cover border-2 border-emerald-500/40 shadow-md"
                   />
                 ) : (
-                  <div className="w-16 h-16 rounded-2xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center text-3xl shadow-sm">
+                  <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center text-2xl sm:text-3xl shadow-sm">
                     {avatar || '⚡'}
                   </div>
                 )}
@@ -238,7 +247,7 @@ export default function ProfileModal({ profile = {}, onSave, onClose, lang = 'IT
                 </button>
               </div>
 
-              <div className="space-y-2.5 flex-1">
+              <div className="space-y-2 flex-1">
                 <input
                   type="file"
                   ref={fileInputRef}
@@ -249,14 +258,14 @@ export default function ProfileModal({ profile = {}, onSave, onClose, lang = 'IT
 
                 {/* Preset Neutral Emojis */}
                 <div className="space-y-1">
-                  <span className="text-[11px] text-zinc-400 font-semibold block">{isEn ? 'Select Neutral Emoji:' : 'Seleziona Emoji Neutra:'}</span>
-                  <div className="flex flex-wrap gap-1.5 max-w-xs">
+                  <span className="text-[10px] sm:text-[11px] text-zinc-400 font-semibold block">{isEn ? 'Select Neutral Emoji:' : 'Seleziona Emoji Neutra:'}</span>
+                  <div className="flex flex-wrap gap-1 sm:gap-1.5 max-w-xs">
                     {presetEmojis.map((e, idx) => (
                       <button
                         key={idx}
                         type="button"
                         onClick={() => setAvatar(e)}
-                        className={`w-8 h-8 rounded-xl flex items-center justify-center text-lg border transition-all ${
+                        className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center text-base sm:text-lg border transition-all ${
                           avatar === e
                             ? 'border-emerald-500 bg-emerald-500/10 ring-2 ring-emerald-500/30'
                             : 'border-zinc-200/70 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 hover:scale-110'
@@ -273,22 +282,22 @@ export default function ProfileModal({ profile = {}, onSave, onClose, lang = 'IT
                   <input
                     type="text"
                     maxLength={4}
-                    placeholder={isEn ? "Custom emoji e.g. 🏎️" : "Emoji personalizzata es. 🏎️"}
+                    placeholder={isEn ? "Custom emoji" : "Emoji personalizzata"}
                     value={customEmoji}
                     onChange={(e) => {
                       setCustomEmoji(e.target.value);
                       if (e.target.value.trim()) setAvatar(e.target.value.trim());
                     }}
-                    className="p-2 bg-zinc-50 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs text-center w-36 font-semibold dark:text-white"
+                    className="p-2 bg-zinc-50 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs text-center w-28 sm:w-36 font-semibold dark:text-white"
                   />
 
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="px-3 py-2 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 text-xs font-semibold rounded-xl transition-all flex items-center gap-1.5"
+                    className="px-2.5 py-2 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 text-xs font-semibold rounded-xl transition-all flex items-center gap-1"
                   >
                     <Upload className="w-3.5 h-3.5" />
-                    <span>{isEn ? 'Upload Photo' : 'Carica Foto'}</span>
+                    <span>{isEn ? 'Photo' : 'Foto'}</span>
                   </button>
                 </div>
 
@@ -305,7 +314,7 @@ export default function ProfileModal({ profile = {}, onSave, onClose, lang = 'IT
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full p-3 bg-zinc-50 dark:bg-zinc-800/70 rounded-2xl border border-zinc-200/80 dark:border-zinc-700/80 text-sm font-semibold dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                className="w-full p-2.5 sm:p-3 bg-zinc-50 dark:bg-zinc-800/70 rounded-2xl border border-zinc-200/80 dark:border-zinc-700/80 text-xs sm:text-sm font-semibold dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
               />
             </div>
 
@@ -316,17 +325,17 @@ export default function ProfileModal({ profile = {}, onSave, onClose, lang = 'IT
                 required
                 value={dob}
                 onChange={(e) => setDob(e.target.value)}
-                className="w-full p-3 bg-zinc-50 dark:bg-zinc-800/70 rounded-2xl border border-zinc-200/80 dark:border-zinc-700/80 text-sm font-semibold dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                className="w-full p-2.5 sm:p-3 bg-zinc-50 dark:bg-zinc-800/70 rounded-2xl border border-zinc-200/80 dark:border-zinc-700/80 text-xs sm:text-sm font-semibold dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
               />
             </div>
           </div>
 
           {/* Age Calculated Badge */}
-          <div className="p-3 bg-zinc-100/80 dark:bg-zinc-800/50 border border-zinc-200/60 dark:border-zinc-700/60 rounded-2xl flex items-center justify-between text-xs">
+          <div className="p-2.5 sm:p-3 bg-zinc-100/80 dark:bg-zinc-800/50 border border-zinc-200/60 dark:border-zinc-700/60 rounded-2xl flex items-center justify-between text-xs">
             <span className="font-semibold text-zinc-600 dark:text-zinc-400 flex items-center gap-1.5">
-              <Calendar className="w-4 h-4 text-emerald-500" /> {t.age}:
+              <Calendar className="w-3.5 h-3.5 text-emerald-500" /> {t.age}:
             </span>
-            <span className="font-extrabold text-sm font-mono text-zinc-900 dark:text-white">
+            <span className="font-extrabold text-xs sm:text-sm font-mono text-zinc-900 dark:text-white">
               {currentAge} {t.yearsOld}
             </span>
           </div>
@@ -342,7 +351,7 @@ export default function ProfileModal({ profile = {}, onSave, onClose, lang = 'IT
                 required
                 value={height}
                 onChange={(e) => setHeight(e.target.value)}
-                className="w-full p-3 bg-zinc-50 dark:bg-zinc-800/70 rounded-2xl border border-zinc-200/80 dark:border-zinc-700/80 text-sm font-mono font-bold dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                className="w-full p-2.5 sm:p-3 bg-zinc-50 dark:bg-zinc-800/70 rounded-2xl border border-zinc-200/80 dark:border-zinc-700/80 text-xs sm:text-sm font-mono font-bold dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
               />
             </div>
 
@@ -355,7 +364,7 @@ export default function ProfileModal({ profile = {}, onSave, onClose, lang = 'IT
                 required
                 value={weight}
                 onChange={(e) => setWeight(e.target.value)}
-                className="w-full p-3 bg-zinc-50 dark:bg-zinc-800/70 rounded-2xl border border-zinc-200/80 dark:border-zinc-700/80 text-sm font-mono font-bold dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                className="w-full p-2.5 sm:p-3 bg-zinc-50 dark:bg-zinc-800/70 rounded-2xl border border-zinc-200/80 dark:border-zinc-700/80 text-xs sm:text-sm font-mono font-bold dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
               />
             </div>
           </div>
@@ -378,7 +387,7 @@ export default function ProfileModal({ profile = {}, onSave, onClose, lang = 'IT
                       setBodyType(b.id);
                       applyPreset(preset, weight, height, currentAge, b.id);
                     }}
-                    className={`p-3 rounded-2xl border text-left transition-all flex flex-col justify-between space-y-1.5 ${
+                    className={`p-2.5 sm:p-3 rounded-2xl border text-left transition-all flex flex-col justify-between space-y-1 ${
                       isSelected
                         ? 'border-emerald-500 bg-emerald-500/10 shadow-xs ring-2 ring-emerald-500/20'
                         : 'border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/60 dark:bg-zinc-800/40 hover:border-zinc-300 dark:hover:border-zinc-700'
@@ -389,7 +398,7 @@ export default function ProfileModal({ profile = {}, onSave, onClose, lang = 'IT
                         {b.label}
                       </span>
                       <div className={`p-1 rounded-lg ${b.color}`}>
-                        <Icon className="w-3.5 h-3.5" />
+                        <Icon className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                       </div>
                     </div>
                     <p className="text-[10px] text-zinc-500 dark:text-zinc-400 leading-tight">
@@ -402,73 +411,70 @@ export default function ProfileModal({ profile = {}, onSave, onClose, lang = 'IT
           </div>
 
           {/* Smart Preset Selector Buttons */}
-          <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800 space-y-3">
+          <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800 space-y-2.5">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-zinc-900 dark:text-white uppercase tracking-wider">
                 {isEn ? 'Smart Macro Presets' : 'Preset Target Intelligenti'}
               </span>
-              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
-                {isEn ? 'Calibrated for beginners' : 'Adatto ai meno esperti'}
-              </span>
             </div>
 
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
               <button
                 type="button"
                 onClick={() => applyPreset('auto')}
-                className={`py-2.5 px-2 rounded-2xl text-xs font-bold transition-all flex flex-col items-center gap-1 border ${
+                className={`py-2 px-1.5 sm:px-2 rounded-2xl text-xs font-bold transition-all flex flex-col items-center gap-1 border ${
                   preset === 'auto'
                     ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 border-zinc-900 dark:border-white shadow-xs'
                     : 'bg-zinc-50 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border-zinc-200/80 dark:border-zinc-700 hover:border-zinc-400'
                 }`}
               >
-                <Zap className="w-4 h-4" />
+                <Zap className="w-3.5 h-3.5" />
                 <span>Auto</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => applyPreset('cut')}
-                className={`py-2.5 px-2 rounded-2xl text-xs font-bold transition-all flex flex-col items-center gap-1 border ${
+                className={`py-2 px-1.5 sm:px-2 rounded-2xl text-xs font-bold transition-all flex flex-col items-center gap-1 border ${
                   preset === 'cut'
                     ? 'bg-rose-600 text-white border-rose-600 shadow-xs'
                     : 'bg-zinc-50 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border-zinc-200/80 dark:border-zinc-700 hover:border-rose-400'
                 }`}
               >
-                <Scissors className="w-4 h-4" />
+                <Scissors className="w-3.5 h-3.5" />
                 <span>Cut</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => applyPreset('bulk')}
-                className={`py-2.5 px-2 rounded-2xl text-xs font-bold transition-all flex flex-col items-center gap-1 border ${
+                className={`py-2 px-1.5 sm:px-2 rounded-2xl text-xs font-bold transition-all flex flex-col items-center gap-1 border ${
                   preset === 'bulk'
                     ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
                     : 'bg-zinc-50 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border-zinc-200/80 dark:border-zinc-700 hover:border-indigo-400'
                 }`}
               >
-                <Dumbbell className="w-4 h-4" />
+                <Dumbbell className="w-3.5 h-3.5" />
                 <span>Bulk</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setPreset('custom')}
-                className={`py-2.5 px-2 rounded-2xl text-xs font-bold transition-all flex flex-col items-center gap-1 border ${
+                className={`py-2 px-1.5 sm:px-2 rounded-2xl text-xs font-bold transition-all flex flex-col items-center gap-1 border ${
                   preset === 'custom'
                     ? 'bg-amber-600 text-white border-amber-600 shadow-xs'
                     : 'bg-zinc-50 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border-zinc-200/80 dark:border-zinc-700 hover:border-amber-400'
                 }`}
               >
-                <Sliders className="w-4 h-4" />
+                <Sliders className="w-3.5 h-3.5" />
                 <span>Custom</span>
               </button>
             </div>
           </div>
 
           {/* Custom Macro Targets */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2.5">
             <div>
               <label className="block text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 mb-1">{t.targetCal}</label>
               <input
@@ -476,7 +482,7 @@ export default function ProfileModal({ profile = {}, onSave, onClose, lang = 'IT
                 required
                 value={calories}
                 onChange={(e) => { setCalories(e.target.value); setPreset('custom'); }}
-                className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-800/80 rounded-xl border border-zinc-200/80 dark:border-zinc-700 text-xs font-mono font-bold text-amber-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                className="w-full p-2 bg-zinc-50 dark:bg-zinc-800/80 rounded-xl border border-zinc-200/80 dark:border-zinc-700 text-xs font-mono font-bold text-amber-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
               />
             </div>
 
@@ -487,7 +493,7 @@ export default function ProfileModal({ profile = {}, onSave, onClose, lang = 'IT
                 required
                 value={protein}
                 onChange={(e) => { setProtein(e.target.value); setPreset('custom'); }}
-                className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-800/80 rounded-xl border border-zinc-200/80 dark:border-zinc-700 text-xs font-mono font-bold text-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                className="w-full p-2 bg-zinc-50 dark:bg-zinc-800/80 rounded-xl border border-zinc-200/80 dark:border-zinc-700 text-xs font-mono font-bold text-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
               />
             </div>
 
@@ -498,7 +504,7 @@ export default function ProfileModal({ profile = {}, onSave, onClose, lang = 'IT
                 required
                 value={fats}
                 onChange={(e) => { setFats(e.target.value); setPreset('custom'); }}
-                className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-800/80 rounded-xl border border-zinc-200/80 dark:border-zinc-700 text-xs font-mono font-bold text-blue-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                className="w-full p-2 bg-zinc-50 dark:bg-zinc-800/80 rounded-xl border border-zinc-200/80 dark:border-zinc-700 text-xs font-mono font-bold text-blue-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
               />
             </div>
 
@@ -509,22 +515,22 @@ export default function ProfileModal({ profile = {}, onSave, onClose, lang = 'IT
                 required
                 value={carbs}
                 onChange={(e) => { setCarbs(e.target.value); setPreset('custom'); }}
-                className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-800/80 rounded-xl border border-zinc-200/80 dark:border-zinc-700 text-xs font-mono font-bold text-purple-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                className="w-full p-2 bg-zinc-50 dark:bg-zinc-800/80 rounded-xl border border-zinc-200/80 dark:border-zinc-700 text-xs font-mono font-bold text-purple-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
               />
             </div>
           </div>
 
-          <div className="flex gap-2 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+          <div className="flex gap-2 pt-3 border-t border-zinc-100 dark:border-zinc-800">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-3 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 font-bold rounded-2xl text-xs hover:bg-zinc-200 transition-all"
+              className="flex-1 py-2.5 sm:py-3 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 font-bold rounded-2xl text-xs hover:bg-zinc-200 transition-all"
             >
               Annulla
             </button>
             <button
               type="submit"
-              className="flex-1 py-3 bg-zinc-900 hover:bg-black dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white font-bold rounded-2xl text-xs flex items-center justify-center gap-1.5 shadow-md transition-all"
+              className="flex-1 py-2.5 sm:py-3 bg-zinc-900 hover:bg-black dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white font-bold rounded-2xl text-xs flex items-center justify-center gap-1.5 shadow-md transition-all"
             >
               <Save className="w-4 h-4" /> {t.save}
             </button>
