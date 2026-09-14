@@ -15,6 +15,50 @@ const getGeminiApiKey = () => {
   return '';
 };
 
+function calculateTradeOutcome(text, tradeObj) {
+  const lower = (text || '').toLowerCase();
+  const type = (tradeObj.type || 'BUY').toUpperCase();
+  const entryPrice = Number(tradeObj.entryPrice || tradeObj.entry_price || 0);
+  const takeProfit = Number(tradeObj.takeProfit || tradeObj.take_profit || 0);
+  const stopLoss = Number(tradeObj.stopLoss || tradeObj.stop_loss || 0);
+
+  let status = tradeObj.status || 'APERTO';
+  let pnl = tradeObj.pnl || '0.0%';
+
+  const isFullTp = lower.includes('full tp') || lower.includes('tp preso') || lower.includes('target preso') || lower.includes('preso tp') || lower.includes('hit tp') || lower.includes('in tp') || lower.includes('chiuso in profitto') || lower.includes('target');
+  const isSl = lower.includes('sl') || lower.includes('stop loss') || lower.includes('preso sl') || lower.includes('stoppato') || lower.includes('hit sl') || lower.includes('in sl') || lower.includes('chiuso in perdita');
+
+  if (isFullTp) {
+    status = 'CHIUSO';
+    if (entryPrice > 0 && takeProfit > 0) {
+      let pct = 0;
+      if (type === 'BUY' || type === 'LONG') {
+        pct = ((takeProfit - entryPrice) / entryPrice) * 100;
+      } else {
+        pct = ((entryPrice - takeProfit) / entryPrice) * 100;
+      }
+      pnl = (pct >= 0 ? '+' : '') + (Math.round(pct * 10) / 10) + '%';
+    } else {
+      pnl = '+2.0%';
+    }
+  } else if (isSl) {
+    status = 'CHIUSO';
+    if (entryPrice > 0 && stopLoss > 0) {
+      let pct = 0;
+      if (type === 'BUY' || type === 'LONG') {
+        pct = ((stopLoss - entryPrice) / entryPrice) * 100;
+      } else {
+        pct = ((entryPrice - stopLoss) / entryPrice) * 100;
+      }
+      pnl = (pct >= 0 ? '+' : '') + (Math.round(pct * 10) / 10) + '%';
+    } else {
+      pnl = '-1.0%';
+    }
+  }
+
+  return { ...tradeObj, status, pnl };
+}
+
 function extractTickerSymbol(text, rawTicker) {
   if (rawTicker && !['btc/usdt', 'btc', 'undefined', 'null'].includes(String(rawTicker).toLowerCase().trim())) {
     return String(rawTicker).toUpperCase();
@@ -43,7 +87,7 @@ function extractTickerSymbol(text, rawTicker) {
   const genericMatch = cleanText.match(/\b([a-z0-9!]{2,6})\b/i);
   if (genericMatch) {
     const sym = genericMatch[1].toUpperCase();
-    if (!['BUY', 'SELL', 'LONG', 'SHORT', 'TAKE', 'PROFIT', 'STOP', 'LOSS', 'ENTRY', 'TRADE', 'TRADING', 'PERCHÈ', 'PERCHE', 'SEMPRE'].includes(sym)) {
+    if (!['BUY', 'SELL', 'LONG', 'SHORT', 'TAKE', 'PROFIT', 'STOP', 'LOSS', 'ENTRY', 'TRADE', 'TRADING', 'PERCHÈ', 'PERCHE', 'SEMPRE', 'FULL'].includes(sym)) {
       return sym;
     }
   }
@@ -67,8 +111,8 @@ function detectIntentCategory(text) {
     lower.includes('eth') || 
     lower.includes('sol') || 
     lower.includes('trade') || 
-    lower.includes('tp ') || 
-    lower.includes('sl ') || 
+    lower.includes('tp') || 
+    lower.includes('sl') || 
     lower.includes('take profit') || 
     lower.includes('stop loss') || 
     lower.includes('entry price') || 
@@ -188,16 +232,18 @@ ${JSON.stringify(currentTrade, null, 2)}
 Istruzione di modifica dell'utente: "${instruction}"
 
 Analizza l'istruzione e restituisci UNICAMENTE un oggetto JSON valido contenente i dati aggiornati del Trade.
-Esempio se l'utente dice "imposta il TP a 68000 e chiudi la posizione in profitto di +15%":
+Se l'utente dice "ha preso full tp" o "stoppato in sl", calcola in modo matamatico preciso la percentuale di profitto (+%) o perdita (-%), imposta status: "CHIUSO" e restituisci il pnl esatto.
+
+Esempio:
 {
   "ticker": "${currentTrade.ticker}",
   "type": "${currentTrade.type}",
   "entryPrice": ${currentTrade.entryPrice},
-  "takeProfit": 68000,
+  "takeProfit": ${currentTrade.takeProfit},
   "stopLoss": ${currentTrade.stopLoss},
   "status": "CHIUSO",
-  "pnl": "+15%",
-  "notes": "Modificato da Assistant AI: TP aggiornato e posizione chiusa in target."
+  "pnl": "+1.5%",
+  "notes": "Modificato da Assistant AI: Full TP raggiunto."
 }
 
 Rispondi ESCLUSIVAMENTE con il JSON valido (senza markdown o altro testo).`;
@@ -207,14 +253,16 @@ Rispondi ESCLUSIVAMENTE con il JSON valido (senza markdown o altro testo).`;
     const cleanJson = replyText.replace(/```json/g, '').replace(/```/g, '').trim();
     const parsed = JSON.parse(cleanJson);
 
-    return {
+    const merged = {
       ...currentTrade,
       ...parsed,
       id: currentTrade.id
     };
+
+    return calculateTradeOutcome(instruction, merged);
   } catch (err) {
     console.error("Failed to parse trade edit with Assistant AI:", err);
-    return null;
+    return calculateTradeOutcome(instruction, currentTrade);
   }
 }
 
@@ -287,6 +335,7 @@ ${langInstruction}
 Analizza la richiesta dell'utente Ivan e restituisci UNICAMENTE un oggetto JSON valido.
 
 SE È TRADING (Trading/Futures/Indices/Crypto/Stock):
+Se l'utente specifica "full tp", "preso tp" o "stoppato in sl", calcola la percentuale di guadagno/perdita, imposta status: "CHIUSO" ed il PnL (% o $).
 {
   "category": "trading",
   "type": "log_entry",
@@ -299,7 +348,7 @@ SE È TRADING (Trading/Futures/Indices/Crypto/Stock):
     "size": "1 Contratto",
     "status": "APERTO" | "CHIUSO",
     "notes": "note",
-    "pnl": "0.0%"
+    "pnl": "+1.5%"
   },
   "message": "..."
 }
@@ -348,7 +397,7 @@ Richiesta dell'utente Ivan: "${userText}"`;
     const entryPrice = Number(rawLog.entryPrice || rawLog.entry_price || (priceMatch ? parseInt(priceMatch[1], 10) : 19500));
     const type = rawLog.type || (userText.toLowerCase().includes('sell') || userText.toLowerCase().includes('short') ? 'SELL' : 'BUY');
 
-    finalLog = {
+    let initialTrade = {
       id: 'tr_' + Date.now(),
       timestamp,
       ticker,
@@ -362,9 +411,11 @@ Richiesta dell'utente Ivan: "${userText}"`;
       pnl: rawLog.pnl || '0.0%'
     };
 
+    finalLog = calculateTradeOutcome(userText, initialTrade);
+
     message = isEn
-      ? `✅ **Trade logged!**\n\n📈 **Asset**: ${ticker} (${type})\n💵 **Entry**: $${entryPrice.toLocaleString()}\n🎯 **TP**: $${finalLog.takeProfit.toLocaleString()} | 🛑 **SL**: $${finalLog.stopLoss.toLocaleString()}`
-      : `✅ **Trade registrato!**\n\n📈 **Asset**: ${ticker} (${type})\n💵 **Entry**: $${entryPrice.toLocaleString()}\n🎯 **TP**: $${finalLog.takeProfit.toLocaleString()} | 🛑 **SL**: $${finalLog.stopLoss.toLocaleString()}`;
+      ? `✅ **Trade logged!**\n\n📈 **Asset**: ${ticker} (${type})\n💵 **Entry**: $${entryPrice.toLocaleString()}\n🎯 **TP**: $${finalLog.takeProfit.toLocaleString()} | 🛑 **SL**: $${finalLog.stopLoss.toLocaleString()}\n📊 **Status**: ${finalLog.status} (${finalLog.pnl})`
+      : `✅ **Trade registrato!**\n\n📈 **Asset**: ${ticker} (${type})\n💵 **Entry**: $${entryPrice.toLocaleString()}\n🎯 **TP**: $${finalLog.takeProfit.toLocaleString()} | 🛑 **SL**: $${finalLog.stopLoss.toLocaleString()}\n📊 **Stato**: ${finalLog.status} (${finalLog.pnl})`;
   } else if (category === 'food') {
     finalLog.mealType = detectedType;
   }
@@ -388,7 +439,7 @@ function fallbackLocalParser(text, timestamp, lang = 'IT') {
     const entryPrice = priceMatch ? parseInt(priceMatch[1], 10) : (ticker.includes('NQ') ? 19500 : 62500);
     const type = text.toLowerCase().includes('sell') || text.toLowerCase().includes('short') ? 'SELL' : 'BUY';
 
-    const tradeLog = {
+    let initialTrade = {
       id: 'tr_' + Date.now(),
       timestamp,
       ticker,
@@ -402,13 +453,15 @@ function fallbackLocalParser(text, timestamp, lang = 'IT') {
       pnl: '0.0%'
     };
 
+    const tradeLog = calculateTradeOutcome(text, initialTrade);
+
     return {
       type: 'log_entry',
       category: 'trading',
       log: tradeLog,
       message: isEn 
-        ? `✅ **Trade logged!**\n\n📈 **Asset**: ${ticker} (${type})\n💵 **Entry**: $${entryPrice.toLocaleString()}\n🎯 **TP**: $${tradeLog.takeProfit.toLocaleString()} | 🛑 **SL**: $${tradeLog.stopLoss.toLocaleString()}`
-        : `✅ **Trade registrato!**\n\n📈 **Asset**: ${ticker} (${type})\n💵 **Entry**: $${entryPrice.toLocaleString()}\n🎯 **TP**: $${tradeLog.takeProfit.toLocaleString()} | 🛑 **SL**: $${tradeLog.stopLoss.toLocaleString()}`
+        ? `✅ **Trade logged!**\n\n📈 **Asset**: ${ticker} (${type})\n💵 **Entry**: $${entryPrice.toLocaleString()}\n🎯 **TP**: $${tradeLog.takeProfit.toLocaleString()} | 🛑 **SL**: $${tradeLog.stopLoss.toLocaleString()}\n📊 **Status**: ${tradeLog.status} (${tradeLog.pnl})`
+        : `✅ **Trade registrato!**\n\n📈 **Asset**: ${ticker} (${type})\n💵 **Entry**: $${entryPrice.toLocaleString()}\n🎯 **TP**: $${tradeLog.takeProfit.toLocaleString()} | 🛑 **SL**: $${tradeLog.stopLoss.toLocaleString()}\n📊 **Stato**: ${tradeLog.status} (${tradeLog.pnl})`
     };
   }
 
