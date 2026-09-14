@@ -15,6 +15,42 @@ const getGeminiApiKey = () => {
   return '';
 };
 
+function extractTickerSymbol(text, rawTicker) {
+  if (rawTicker && !['btc/usdt', 'btc', 'undefined', 'null'].includes(String(rawTicker).toLowerCase().trim())) {
+    return String(rawTicker).toUpperCase();
+  }
+
+  const cleanText = (text || '').trim();
+
+  // 1. Index Futures & Commodities
+  if (/\b(nq1!|nq1|nq|nasdaq|us100)\b/i.test(cleanText)) return 'NQ1!';
+  if (/\b(es1!|es1|es|sp500|us500)\b/i.test(cleanText)) return 'ES1!';
+  if (/\b(gold|xauusd|xau)\b/i.test(cleanText)) return 'XAU/USD';
+  if (/\b(oil|cl|wti)\b/i.test(cleanText)) return 'WTI/OIL';
+
+  // 2. Crypto Assets
+  const cryptoMatch = cleanText.match(/\b(btc|eth|sol|xrp|ada|dot|link|bnb|avax)\b/i);
+  if (cryptoMatch) return cryptoMatch[1].toUpperCase() + '/USDT';
+
+  // 3. Stocks & Forex
+  const stockMatch = cleanText.match(/\b(nvda|aapl|tsla|msft|googl|amzn|meta)\b/i);
+  if (stockMatch) return stockMatch[1].toUpperCase();
+
+  const forexMatch = cleanText.match(/\b(eurusd|gbpusd|usdjpy|audusd|dxy)\b/i);
+  if (forexMatch) return forexMatch[1].toUpperCase();
+
+  // 4. Any explicit 2-6 char symbol (e.g. NQ1, ES1, RTY, FDAX)
+  const genericMatch = cleanText.match(/\b([a-z0-9!]{2,6})\b/i);
+  if (genericMatch) {
+    const sym = genericMatch[1].toUpperCase();
+    if (!['BUY', 'SELL', 'LONG', 'SHORT', 'TAKE', 'PROFIT', 'STOP', 'LOSS', 'ENTRY', 'TRADE', 'TRADING', 'PERCHÈ', 'PERCHE', 'SEMPRE'].includes(sym)) {
+      return sym;
+    }
+  }
+
+  return 'NQ1!';
+}
+
 function detectIntentCategory(text) {
   const lower = (text || '').toLowerCase().trim();
 
@@ -24,6 +60,9 @@ function detectIntentCategory(text) {
     lower.includes('sell ') || 
     lower.includes('long ') || 
     lower.includes('short ') || 
+    lower.includes('nq') ||
+    lower.includes('nq1') ||
+    lower.includes('es1') ||
     lower.includes('btc') || 
     lower.includes('eth') || 
     lower.includes('sol') || 
@@ -247,17 +286,17 @@ ${langInstruction}
 
 Analizza la richiesta dell'utente Ivan e restituisci UNICAMENTE un oggetto JSON valido.
 
-SE È TRADING (Trading):
+SE È TRADING (Trading/Futures/Indices/Crypto/Stock):
 {
   "category": "trading",
   "type": "log_entry",
   "log": {
-    "ticker": "BTC/USDT",
+    "ticker": "NQ1!" | "ES1!" | "BTC/USDT" | "NVDA",
     "type": "BUY" | "SELL",
-    "entryPrice": 62500,
-    "takeProfit": 66000,
-    "stopLoss": 60000,
-    "size": "1 Posizione",
+    "entryPrice": 19500,
+    "takeProfit": 19800,
+    "stopLoss": 19400,
+    "size": "1 Contratto",
     "status": "APERTO" | "CHIUSO",
     "notes": "note",
     "pnl": "0.0%"
@@ -303,11 +342,10 @@ Richiesta dell'utente Ivan: "${userText}"`;
   let message = parsed.message;
 
   if (category === 'trading') {
-    const tickerMatch = userText.match(/(btc|eth|sol|nvda|aapl|eurusd|usdt)/i);
+    const ticker = extractTickerSymbol(userText, rawLog.ticker);
     const priceMatch = userText.match(/(\d{4,6})/);
 
-    const ticker = rawLog.ticker || (tickerMatch ? tickerMatch[1].toUpperCase() + '/USDT' : 'BTC/USDT');
-    const entryPrice = Number(rawLog.entryPrice || rawLog.entry_price || (priceMatch ? parseInt(priceMatch[1], 10) : 62500));
+    const entryPrice = Number(rawLog.entryPrice || rawLog.entry_price || (priceMatch ? parseInt(priceMatch[1], 10) : 19500));
     const type = rawLog.type || (userText.toLowerCase().includes('sell') || userText.toLowerCase().includes('short') ? 'SELL' : 'BUY');
 
     finalLog = {
@@ -316,9 +354,9 @@ Richiesta dell'utente Ivan: "${userText}"`;
       ticker,
       type,
       entryPrice,
-      takeProfit: Number(rawLog.takeProfit || rawLog.take_profit || (type === 'BUY' ? Math.round(entryPrice * 1.05) : Math.round(entryPrice * 0.95))),
-      stopLoss: Number(rawLog.stopLoss || rawLog.stop_loss || (type === 'BUY' ? Math.round(entryPrice * 0.96) : Math.round(entryPrice * 1.04))),
-      size: rawLog.size || '1 Posizione',
+      takeProfit: Number(rawLog.takeProfit || rawLog.take_profit || (type === 'BUY' ? Math.round(entryPrice * 1.02) : Math.round(entryPrice * 0.98))),
+      stopLoss: Number(rawLog.stopLoss || rawLog.stop_loss || (type === 'BUY' ? Math.round(entryPrice * 0.99) : Math.round(entryPrice * 1.01))),
+      size: rawLog.size || '1 Contratto',
       status: rawLog.status || 'APERTO',
       notes: rawLog.notes || userText,
       pnl: rawLog.pnl || '0.0%'
@@ -344,11 +382,10 @@ function fallbackLocalParser(text, timestamp, lang = 'IT') {
   const category = detectIntentCategory(text);
 
   if (category === 'trading') {
-    const tickerMatch = text.match(/(btc|eth|sol|nvda|aapl|eurusd|usdt)/i);
+    const ticker = extractTickerSymbol(text, null);
     const priceMatch = text.match(/(\d{4,6})/);
 
-    const ticker = tickerMatch ? tickerMatch[1].toUpperCase() + '/USDT' : 'BTC/USDT';
-    const entryPrice = priceMatch ? parseInt(priceMatch[1], 10) : 62500;
+    const entryPrice = priceMatch ? parseInt(priceMatch[1], 10) : (ticker.includes('NQ') ? 19500 : 62500);
     const type = text.toLowerCase().includes('sell') || text.toLowerCase().includes('short') ? 'SELL' : 'BUY';
 
     const tradeLog = {
@@ -357,9 +394,9 @@ function fallbackLocalParser(text, timestamp, lang = 'IT') {
       ticker,
       type,
       entryPrice,
-      takeProfit: type === 'BUY' ? Math.round(entryPrice * 1.05) : Math.round(entryPrice * 0.95),
-      stopLoss: type === 'BUY' ? Math.round(entryPrice * 0.96) : Math.round(entryPrice * 1.04),
-      size: '1 Posizione',
+      takeProfit: type === 'BUY' ? Math.round(entryPrice * 1.02) : Math.round(entryPrice * 0.98),
+      stopLoss: type === 'BUY' ? Math.round(entryPrice * 0.99) : Math.round(entryPrice * 1.01),
+      size: '1 Contratto',
       status: 'APERTO',
       notes: text,
       pnl: '0.0%'
