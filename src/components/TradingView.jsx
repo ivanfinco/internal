@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { TrendingUp, ArrowUpRight, ArrowDownRight, Clock, Plus, Trash2, Edit2, ShieldCheck, DollarSign, Activity, Filter, Check, X, Sparkles, Send } from 'lucide-react';
+import { TrendingUp, ArrowUpRight, ArrowDownRight, Clock, Plus, Trash2, Edit2, ShieldCheck, DollarSign, Activity, Filter, Check, X, Sparkles, Send, PieChart, BarChart2, Award, Zap } from 'lucide-react';
 import RealCalendar from './RealCalendar';
 import { parseTradeEditInstruction } from '../utils/aiParser';
 
@@ -32,6 +32,36 @@ export default function TradingView({ tradingLogs = [], onAddTradingLog, onDelet
   const [editStatus, setEditStatus] = useState('APERTO');
   const [editPnl, setEditPnl] = useState('0.0%');
   const [editNotes, setEditNotes] = useState('');
+
+  // ═══════════════════════════════════════════════════
+  // REAL STATISTICAL CALCULATORS FOR TRADING
+  // ═══════════════════════════════════════════════════
+  const parsePnlNum = (pnlStr) => {
+    if (!pnlStr) return 0;
+    const clean = String(pnlStr).replace('$', '').replace('%', '').replace('+', '').trim();
+    const val = parseFloat(clean);
+    return isNaN(val) ? 0 : val;
+  };
+
+  const totalTradesCount = safeLogs.length;
+  const closedTrades = safeLogs.filter(t => t && (t.status === 'CHIUSO' || t.status === 'CLOSED'));
+  const openTradesCount = safeLogs.filter(t => t && (t.status === 'APERTO' || t.status === 'OPEN' || !t.status)).length;
+
+  const winningTrades = closedTrades.filter(t => parsePnlNum(t.pnl) > 0);
+  const losingTrades = closedTrades.filter(t => parsePnlNum(t.pnl) < 0);
+
+  const realWinRate = closedTrades.length > 0 
+    ? Math.round((winningTrades.length / closedTrades.length) * 1000) / 10 
+    : (safeLogs.length > 0 ? 100 : 0);
+
+  const totalPnlVal = safeLogs.reduce((sum, t) => sum + parsePnlNum(t.pnl), 0);
+  const realPnlDisplay = (totalPnlVal >= 0 ? '+' : '') + (Math.round(totalPnlVal * 10) / 10) + '%';
+
+  const grossProfit = winningTrades.reduce((sum, t) => sum + parsePnlNum(t.pnl), 0);
+  const grossLoss = Math.abs(losingTrades.reduce((sum, t) => sum + parsePnlNum(t.pnl), 0));
+  const realProfitFactor = grossLoss > 0 
+    ? (grossProfit / grossLoss).toFixed(2) 
+    : grossProfit > 0 ? 'MAX' : '1.00';
 
   const handleManualAdd = (e) => {
     e.preventDefault();
@@ -166,36 +196,93 @@ export default function TradingView({ tradingLogs = [], onAddTradingLog, onDelet
         logs={{ trading: safeLogs }}
       />
 
-      {/* Summary KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-gradient-to-br from-purple-950 via-zinc-900 to-zinc-900 text-white p-5 rounded-3xl border border-purple-800/60 shadow-sm flex items-center gap-4">
-          <div className="p-3 bg-purple-500/20 rounded-2xl border border-purple-500/30">
-            <Activity className="w-6 h-6 text-purple-400" />
+      {/* Real Summary KPI Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        
+        {/* Total Trades Card */}
+        <div className="bg-gradient-to-br from-purple-950 via-zinc-900 to-zinc-900 text-white p-5 rounded-3xl border border-purple-800/60 shadow-sm flex flex-col justify-between space-y-3">
+          <div className="flex justify-between items-center">
+            <span className="text-xs text-purple-300 uppercase tracking-wider font-bold">Posizioni Totali</span>
+            <div className="p-2 bg-purple-500/20 rounded-xl border border-purple-500/30">
+              <Activity className="w-4 h-4 text-purple-400" />
+            </div>
           </div>
           <div>
-            <span className="text-xs text-purple-200 block uppercase font-semibold">Operazioni Loggate</span>
-            <span className="text-2xl font-extrabold font-mono">{safeLogs.length} Posizioni</span>
+            <span className="text-2xl font-extrabold font-mono block">{totalTradesCount}</span>
+            <span className="text-[11px] text-zinc-400">
+              {openTradesCount} Aperte • {closedTrades.length} Chiuse
+            </span>
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-emerald-950 via-zinc-900 to-zinc-900 text-white p-5 rounded-3xl border border-emerald-800/60 shadow-sm flex items-center gap-4">
-          <div className="p-3 bg-emerald-500/20 rounded-2xl border border-emerald-500/30">
-            <ArrowUpRight className="w-6 h-6 text-emerald-400" />
+        {/* Real Win Rate Card */}
+        <div className="bg-gradient-to-br from-emerald-950 via-zinc-900 to-zinc-900 text-white p-5 rounded-3xl border border-emerald-800/60 shadow-sm flex flex-col justify-between space-y-3">
+          <div className="flex justify-between items-center">
+            <span className="text-xs text-emerald-300 uppercase tracking-wider font-bold">Win Rate Reale</span>
+            <div className="p-2 bg-emerald-500/20 rounded-xl border border-emerald-500/30">
+              <ArrowUpRight className="w-4 h-4 text-emerald-400" />
+            </div>
           </div>
           <div>
-            <span className="text-xs text-emerald-200 block uppercase font-semibold">Win Rate Globale</span>
-            <span className="text-2xl font-extrabold font-mono">78.5% Target</span>
+            <span className="text-2xl font-extrabold font-mono text-emerald-400 block">{realWinRate}%</span>
+            <span className="text-[11px] text-zinc-400">
+              {winningTrades.length} W / {losingTrades.length} L su posizioni chiuse
+            </span>
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-indigo-950 via-zinc-900 to-zinc-900 text-white p-5 rounded-3xl border border-indigo-800/60 shadow-sm flex items-center gap-4">
-          <div className="p-3 bg-indigo-500/20 rounded-2xl border border-indigo-500/30">
-            <DollarSign className="w-6 h-6 text-indigo-400" />
+        {/* Real Cumulative PnL Card */}
+        <div className={`bg-gradient-to-br text-white p-5 rounded-3xl border shadow-sm flex flex-col justify-between space-y-3 ${
+          totalPnlVal >= 0
+            ? 'from-emerald-950 via-zinc-900 to-zinc-900 border-emerald-800/60'
+            : 'from-rose-950 via-zinc-900 to-zinc-900 border-rose-800/60'
+        }`}>
+          <div className="flex justify-between items-center">
+            <span className="text-xs text-indigo-300 uppercase tracking-wider font-bold">PnL Cumulato Reale</span>
+            <div className="p-2 bg-indigo-500/20 rounded-xl border border-indigo-500/30">
+              <DollarSign className="w-4 h-4 text-indigo-400" />
+            </div>
           </div>
           <div>
-            <span className="text-xs text-indigo-200 block uppercase font-semibold">PnL Cumulato</span>
-            <span className="text-2xl font-extrabold font-mono text-emerald-400">+$1,450.00</span>
+            <span className={`text-2xl font-extrabold font-mono block ${totalPnlVal >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+              {realPnlDisplay}
+            </span>
+            <span className="text-[11px] text-zinc-400">
+              Rendimento complessivo portafoglio
+            </span>
           </div>
+        </div>
+
+        {/* Real Profit Factor Card */}
+        <div className="bg-gradient-to-br from-indigo-950 via-zinc-900 to-zinc-900 text-white p-5 rounded-3xl border border-indigo-800/60 shadow-sm flex flex-col justify-between space-y-3">
+          <div className="flex justify-between items-center">
+            <span className="text-xs text-indigo-300 uppercase tracking-wider font-bold">Profit Factor</span>
+            <div className="p-2 bg-indigo-500/20 rounded-xl border border-indigo-500/30">
+              <Award className="w-4 h-4 text-indigo-400" />
+            </div>
+          </div>
+          <div>
+            <span className="text-2xl font-extrabold font-mono text-indigo-300 block">{realProfitFactor}</span>
+            <span className="text-[11px] text-zinc-400">
+              Rapporto Vincite / Perdite
+            </span>
+          </div>
+        </div>
+
+      </div>
+
+      {/* Performance Recap Bar */}
+      <div className="p-4 bg-zinc-900 border border-purple-500/30 rounded-2xl text-xs font-mono text-zinc-300 flex flex-wrap items-center justify-between gap-3 shadow-sm">
+        <div className="flex items-center gap-2">
+          <Zap className="w-4 h-4 text-amber-400" />
+          <span className="font-bold text-white font-sans">Recap Prestazioni Trading:</span>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-4 text-[11px]">
+          <div>📊 Posizioni: <strong className="text-white">{totalTradesCount}</strong></div>
+          <div>🎯 Win Rate: <strong className="text-emerald-400">{realWinRate}%</strong></div>
+          <div>🏆 Profit Factor: <strong className="text-indigo-300">{realProfitFactor}</strong></div>
+          <div>💰 PnL Netto: <strong className={totalPnlVal >= 0 ? "text-emerald-400" : "text-rose-400"}>{realPnlDisplay}</strong></div>
         </div>
       </div>
 
