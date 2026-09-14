@@ -47,6 +47,10 @@ export default function Header({
   const fatPercent = Math.min(100, Math.round(((safeMacros.fats || 0) / (safeTargets.fats || 70)) * 100));
   const carbPercent = Math.min(100, Math.round(((safeMacros.carbs || 0) / (safeTargets.carbs || 280)) * 100));
 
+  const displayPro = Math.round((safeMacros.protein || 0) * 10) / 10;
+  const displayFat = Math.round((safeMacros.fats || 0) * 10) / 10;
+  const displayCarb = Math.round((safeMacros.carbs || 0) * 10) / 10;
+
   return (
     <header className="sticky top-0 z-40 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl border-b border-zinc-200/80 dark:border-zinc-800/80 transition-colors">
       
@@ -161,7 +165,7 @@ export default function Header({
                 <Flame className="w-3 h-3 text-amber-500" /> {t.calories}
               </span>
               <span className="font-mono font-bold text-zinc-900 dark:text-white text-[11px]">
-                {safeMacros.calories} / {safeTargets.calories}
+                {Math.round(safeMacros.calories || 0)} / {safeTargets.calories}
               </span>
             </div>
             <div className="w-full bg-zinc-100 dark:bg-zinc-700 rounded-full h-1.5 overflow-hidden">
@@ -179,7 +183,7 @@ export default function Header({
                 🥩 {t.protein}
               </span>
               <span className="font-mono font-bold text-zinc-900 dark:text-white text-[11px]">
-                {safeMacros.protein}g / {safeTargets.protein}g
+                {displayPro}g / {safeTargets.protein}g
               </span>
             </div>
             <div className="w-full bg-zinc-100 dark:bg-zinc-700 rounded-full h-1.5 overflow-hidden">
@@ -197,7 +201,7 @@ export default function Header({
                 🥑 {t.fats}
               </span>
               <span className="font-mono font-bold text-zinc-900 dark:text-white text-[11px]">
-                {safeMacros.fats}g / {safeTargets.fats}g
+                {displayFat}g / {safeTargets.fats}g
               </span>
             </div>
             <div className="w-full bg-zinc-100 dark:bg-zinc-700 rounded-full h-1.5 overflow-hidden">
@@ -215,7 +219,7 @@ export default function Header({
                 🍞 {t.carbs}
               </span>
               <span className="font-mono font-bold text-zinc-900 dark:text-white text-[11px]">
-                {safeMacros.carbs}g / {safeTargets.carbs}g
+                {displayCarb}g / {safeTargets.carbs}g
               </span>
             </div>
             <div className="w-full bg-zinc-100 dark:bg-zinc-700 rounded-full h-1.5 overflow-hidden">

@@ -327,7 +327,7 @@ export default function App() {
     updateSupabaseTradingLog(updatedLog);
   };
 
-  // Macro Totals for Today
+  // Macro Totals for Today with strict 1-decimal rounding (Fix JS floating point precision zeros)
   const todayStr = new Date().toISOString().split('T')[0];
   const safeFoodLogs = Array.isArray(foodLogs) ? foodLogs.filter(Boolean) : [];
   const safeTrainingLogs = Array.isArray(trainingLogs) ? trainingLogs.filter(Boolean) : [];
@@ -335,7 +335,7 @@ export default function App() {
 
   const todayFoodLogs = safeFoodLogs.filter(log => log && log.timestamp && log.timestamp.startsWith(todayStr));
 
-  const macroTotals = todayFoodLogs.reduce(
+  const rawMacroTotals = todayFoodLogs.reduce(
     (acc, log) => ({
       calories: acc.calories + (Number(log.calories) || 0),
       protein: acc.protein + (Number(log.protein) || 0),
@@ -344,6 +344,13 @@ export default function App() {
     }),
     { calories: 0, protein: 0, fats: 0, carbs: 0 }
   );
+
+  const macroTotals = {
+    calories: Math.round(rawMacroTotals.calories),
+    protein: Math.round(rawMacroTotals.protein * 10) / 10,
+    fats: Math.round(rawMacroTotals.fats * 10) / 10,
+    carbs: Math.round(rawMacroTotals.carbs * 10) / 10
+  };
 
   const currentTargets = profile?.targets || DEFAULT_TARGETS;
 
