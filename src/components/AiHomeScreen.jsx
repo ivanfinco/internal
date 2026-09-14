@@ -4,7 +4,7 @@ import { parseUserInput } from '../utils/aiParser';
 import { TRANSLATIONS } from '../constants/translations';
 import DailyTipCard from './DailyTipCard';
 
-export default function AiHomeScreen({ logs, onAddLog, onQuickTabSwitch, lang = 'IT', profile }) {
+export default function AiHomeScreen({ logs, onAddLog, onQuickTabSwitch, lang = 'IT', profile, chatHistory: externalHistory, setChatHistory: setExternalHistory }) {
   const t = TRANSLATIONS[lang].aiHome;
   const isEn = lang === 'EN';
 
@@ -12,31 +12,20 @@ export default function AiHomeScreen({ logs, onAddLog, onQuickTabSwitch, lang = 
   const isImageAvatar = avatar && (avatar.startsWith('http') || avatar.startsWith('data:image'));
 
   const [inputText, setInputText] = useState('');
-  const [chatHistory, setChatHistory] = useState(() => [
+  
+  const [internalHistory, setInternalHistory] = useState(() => [
     {
       id: 'welcome',
       sender: 'ai',
       timestamp: new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }),
       message: isEn
-        ? `👋 **Hello ${profile?.name || 'Ivan'}! I'm your AI Personal Assistant.**\n\nFeel free to type anything in natural language! For example:\n- 🥗 \`food: ate 200g chicken breast with 100g basmati rice and olive oil\`\n- 🏋️ \`training: workout today, 4x8 squat @ 110kg and 3x10 bench press @ 80kg\`\n- 📈 \`trading: BUY BTC @ 62000$, TP 66000$ SL 59000$\`\n- ❓ \`how much protein did I eat today?\` or \`show recent trades\``
-        : `👋 **Ciao ${profile?.name || 'Ivan'}! Sono il tuo Assistente AI personale.**\n\nScrivi pure liberamente qualsiasi dato in linguaggio naturale! Ad esempio:\n- 🥗 \`food: ho mangiato 200g petto di pollo con 100g riso e un filo d'olio\`\n- 🏋️ \`training: mi sono allenato, fatto 4x8 squat a 100kg e 3x10 panca a 80kg\`\n- 📈 \`trading: comprato BTC a 62000$, TP 66000$ SL 59000$\`\n- ❓ \`quante proteine ho mangiato oggi?\` o \`mostrami gli ultimi trade\``
+        ? `👋 **Hello ${profile?.name || 'Ivan'}! I'm your AI Personal Assistant.**`
+        : `👋 **Ciao ${profile?.name || 'Ivan'}! Sono il tuo Assistente AI personale.**`
     }
   ]);
 
-  useEffect(() => {
-    setChatHistory(prev => {
-      if (prev.length > 0 && prev[0].id === 'welcome') {
-        const updatedWelcome = {
-          ...prev[0],
-          message: isEn
-            ? `👋 **Hello ${profile?.name || 'Ivan'}! I'm your AI Personal Assistant.**\n\nFeel free to type anything in natural language! For example:\n- 🥗 \`food: ate 200g chicken breast with 100g basmati rice and olive oil\`\n- 🏋️ \`training: workout today, 4x8 squat @ 110kg and 3x10 bench press @ 80kg\`\n- 📈 \`trading: BUY BTC @ 62000$, TP 66000$ SL 59000$\`\n- ❓ \`how much protein did I eat today?\` or \`show recent trades\``
-            : `👋 **Ciao ${profile?.name || 'Ivan'}! Sono il tuo Assistente AI personale.**\n\nScrivi pure liberamente qualsiasi dato in linguaggio naturale! Ad esempio:\n- 🥗 \`food: ho mangiato 200g petto di pollo con 100g riso e un filo d'olio\`\n- 🏋️ \`training: mi sono allenato, fatto 4x8 squat a 100kg e 3x10 panca a 80kg\`\n- 📈 \`trading: comprato BTC a 62000$, TP 66000$ SL 59000$\`\n- ❓ \`quante proteine ho mangiato oggi?\` o \`mostrami gli ultimi trade\``
-        };
-        return [updatedWelcome, ...prev.slice(1)];
-      }
-      return prev;
-    });
-  }, [lang, profile?.name]);
+  const chatHistory = externalHistory || internalHistory;
+  const setChatHistory = setExternalHistory || setInternalHistory;
 
   const [isProcessing, setIsProcessing] = useState(false);
   const chatEndRef = useRef(null);
@@ -89,14 +78,14 @@ export default function AiHomeScreen({ logs, onAddLog, onQuickTabSwitch, lang = 
   };
 
   const quickPrompts = isEn ? [
-    { label: "🥗 food: 200g chicken, 120g rice, 15g olive oil", text: "food: 200g chicken, 120g rice, 15g olive oil" },
-    { label: "🏋️ training: squat 4x8 110kg, feeling great", text: "training: squat 4x8 110kg, feeling great" },
-    { label: "📈 trading: BUY BTC @ 62450 TP 66500 SL 60800", text: "trading: BUY BTC @ 62450 TP 66500 SL 60800" },
+    { label: "🥗 food: 200g chicken, 120g rice", text: "food: 200g chicken, 120g rice" },
+    { label: "🏋️ training: squat 4x8 110kg", text: "training: squat 4x8 110kg" },
+    { label: "📈 trading: BUY 5 MNQ @ 19500", text: "trading: BUY 5 MNQ @ 19500" },
     { label: "❓ how much protein did I eat today?", text: "how much protein did I eat today?" }
   ] : [
-    { label: "🥗 food: 200g pollo, 120g riso, 15g olio evo", text: "food: 200g pollo, 120g riso, 15g olio evo" },
-    { label: "🏋️ training: squat 4x8 110kg, feeling ottimo", text: "training: squat 4x8 110kg, feeling ottimo" },
-    { label: "📈 trading: BUY BTC @ 62450 TP 66500 SL 60800", text: "trading: BUY BTC @ 62450 TP 66500 SL 60800" },
+    { label: "🥗 food: 200g pollo, 120g riso", text: "food: 200g pollo, 120g riso" },
+    { label: "🏋️ training: squat 4x8 110kg", text: "training: squat 4x8 110kg" },
+    { label: "📈 trading: BUY 5 MNQ @ 19500", text: "trading: BUY 5 MNQ @ 19500" },
     { label: "❓ quante proteine ho mangiato oggi?", text: "quante proteine ho mangiato oggi?" }
   ];
 

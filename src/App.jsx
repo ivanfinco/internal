@@ -72,6 +72,26 @@ export default function App() {
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showDbModal, setShowDbModal] = useState(false);
 
+  // Persistent AI Chat History State across Tab Switch & Storage
+  const [chatHistory, setChatHistory] = useState(() => {
+    const saved = localStorage.getItem('ivan_chat_history');
+    if (saved) return JSON.parse(saved);
+    return [
+      {
+        id: 'welcome',
+        sender: 'ai',
+        timestamp: new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }),
+        message: lang === 'EN'
+          ? `👋 **Hello Ivan! I'm your AI Personal Assistant.**`
+          : `👋 **Ciao Ivan! Sono il tuo Assistente AI personale.**`
+      }
+    ];
+  });
+
+  useEffect(() => {
+    localStorage.setItem('ivan_chat_history', JSON.stringify(chatHistory));
+  }, [chatHistory]);
+
   // User Personal Profile State
   const [profile, setProfile] = useState(() => {
     const saved = localStorage.getItem('ivan_user_profile');
@@ -114,51 +134,55 @@ export default function App() {
     return saved ? JSON.parse(saved) : INITIAL_TRADING_LOGS;
   });
 
-  // Initial Supabase Sync & Real-time Listener
+  // Load from Supabase on initial mount
   useEffect(() => {
-    let isMounted = true;
-
-    async function loadCloudData() {
+    async function loadData() {
       try {
-        const [cloudProfile, cloudFood, cloudTraining, cloudTrading] = await Promise.all([
+        const [prof, food, train, trade] = await Promise.all([
           fetchUserProfile(),
           fetchFoodLogs(),
           fetchTrainingLogs(),
           fetchTradingLogs()
         ]);
 
-        if (!isMounted) return;
+        if (prof) setProfile(prof);
 
-        if (cloudProfile) setProfile(cloudProfile);
-        if (cloudFood && cloudFood.length > 0) {
-          setFoodLogs(cloudFood.map(sanitizeFoodLogMealType));
+        if (food && food.length > 0) {
+          const sanitizedFood = food.map(item => {
+            const sanitized = sanitizeFoodLogMealType(item);
+            return {
+              ...sanitized,
+              ingredientsBreakdown: parseScientificBreakdown(sanitized.description, sanitized.calories, sanitized.protein, sanitized.fats, sanitized.carbs, sanitized.micros || {})
+            };
+          });
+          setFoodLogs(sanitizedFood);
         }
-        if (cloudTraining && cloudTraining.length > 0) setTrainingLogs(cloudTraining);
-        if (cloudTrading && cloudTrading.length > 0) setTradingLogs(cloudTrading);
+
+        if (train && train.length > 0) setTrainingLogs(train);
+        if (trade && trade.length > 0) setTradingLogs(trade);
       } catch (err) {
-        console.warn("Supabase initial sync fallback:", err);
+        console.warn("Supabase initial load notice (fallback to local state):", err.message);
       }
     }
 
-    loadCloudData();
+    loadData();
 
-    const unsubscribe = subscribeToRealtimeChanges(() => {
-      loadCloudData();
+    const unsubscribe = subscribeToRealtimeChanges((payload) => {
+      console.log('Supabase Realtime update received:', payload);
     });
 
     return () => {
-      isMounted = false;
-      unsubscribe();
+      if (unsubscribe) unsubscribe();
     };
   }, []);
 
+  // Save state to localStorage as fallback
   useEffect(() => {
+    localStorage.setItem('ivan_theme', darkMode ? 'dark' : 'light');
     if (darkMode) {
       document.documentElement.classList.add('dark');
-      localStorage.setItem('ivan_theme', 'dark');
     } else {
       document.documentElement.classList.remove('dark');
-      localStorage.setItem('ivan_theme', 'light');
     }
   }, [darkMode]);
 
@@ -168,7 +192,6 @@ export default function App() {
 
   useEffect(() => {
     localStorage.setItem('ivan_user_profile', JSON.stringify(profile));
-    saveSupabaseProfile(profile);
   }, [profile]);
 
   useEffect(() => {
@@ -183,37 +206,22 @@ export default function App() {
     localStorage.setItem('ivan_trading_logs', JSON.stringify(tradingLogs));
   }, [tradingLogs]);
 
-  const handleLogin = (userInfo) => {
-    setUser(userInfo);
-    localStorage.setItem('ivan_dashboard_user', JSON.stringify(userInfo));
-  };
-
-  const handleLogout = () => {
-    setUser(null);
-    localStorage.removeItem('ivan_dashboard_user');
-  };
-
+  // Handlers
   const handleUpdateProfile = (newProfile) => {
     setProfile(newProfile);
     saveSupabaseProfile(newProfile);
   };
 
   const handleAddLog = (category, newLog) => {
+    if (!newLog) return;
     if (category === 'food') {
       const sanitized = sanitizeFoodLogMealType(newLog);
-      const scientificLog = {
+      const withBreakdown = {
         ...sanitized,
-        ingredientsBreakdown: parseScientificBreakdown(
-          sanitized.description,
-          sanitized.calories,
-          sanitized.protein,
-          sanitized.fats,
-          sanitized.carbs,
-          sanitized.micros || {}
-        )
+        ingredientsBreakdown: parseScientificBreakdown(sanitized.description, sanitized.calories, sanitized.protein, sanitized.fats, sanitized.carbs, sanitized.micros || {})
       };
-      setFoodLogs(prev => [scientificLog, ...prev]);
-      addSupabaseFoodLog(scientificLog);
+      setFoodLogs(prev => [withBreakdown, ...prev]);
+      addSupabaseFoodLog(withBreakdown);
     } else if (category === 'training') {
       setTrainingLogs(prev => [newLog, ...prev]);
       addSupabaseTrainingLog(newLog);
@@ -224,130 +232,111 @@ export default function App() {
   };
 
   const handleDeleteFoodLog = (id) => {
-    setFoodLogs(prev => prev.filter(item => item.id !== id));
+    setFoodLogs(prev => prev.filter(log => log.id !== id));
     deleteSupabaseFoodLog(id);
   };
 
   const handleUpdateFoodLog = (updatedLog) => {
     const sanitized = sanitizeFoodLogMealType(updatedLog);
-    const scientificLog = {
+    const withBreakdown = {
       ...sanitized,
-      ingredientsBreakdown: parseScientificBreakdown(
-        sanitized.description,
-        sanitized.calories,
-        sanitized.protein,
-        sanitized.fats,
-        sanitized.carbs,
-        sanitized.micros || {}
-      )
+      ingredientsBreakdown: parseScientificBreakdown(sanitized.description, sanitized.calories, sanitized.protein, sanitized.fats, sanitized.carbs, sanitized.micros || {})
     };
-    setFoodLogs(prev => prev.map(item => item.id === scientificLog.id ? scientificLog : item));
-    updateSupabaseFoodLog(scientificLog);
+
+    setFoodLogs(prev => prev.map(log => log.id === sanitized.id ? withBreakdown : log));
+    updateSupabaseFoodLog(withBreakdown);
   };
 
   const handleDeleteTrainingLog = (id) => {
-    setTrainingLogs(prev => prev.filter(item => item.id !== id));
+    setTrainingLogs(prev => prev.filter(log => log.id !== id));
     deleteSupabaseTrainingLog(id);
   };
 
   const handleDeleteTradingLog = (id) => {
-    setTradingLogs(prev => prev.filter(item => item.id !== id));
+    setTradingLogs(prev => prev.filter(log => log.id !== id));
     deleteSupabaseTradingLog(id);
   };
 
   const handleUpdateTradingLog = (updatedLog) => {
-    setTradingLogs(prev => prev.map(item => item.id === updatedLog.id ? updatedLog : item));
+    setTradingLogs(prev => prev.map(log => log.id === updatedLog.id ? updatedLog : log));
     updateSupabaseTradingLog(updatedLog);
   };
 
-  const rawTotals = foodLogs.reduce((acc, item) => ({
-    calories: acc.calories + (item.calories || 0),
-    protein: acc.protein + (item.protein || 0),
-    fats: acc.fats + (item.fats || 0),
-    carbs: acc.carbs + (item.carbs || 0)
-  }), { calories: 0, protein: 0, fats: 0, carbs: 0 });
+  // Macro Totals for Today
+  const todayStr = new Date().toISOString().split('T')[0];
+  const todayFoodLogs = foodLogs.filter(log => log.timestamp && log.timestamp.startsWith(todayStr));
 
-  const macroTotals = {
-    calories: Math.round(rawTotals.calories),
-    protein: Math.round(rawTotals.protein * 10) / 10,
-    fats: Math.round(rawTotals.fats * 10) / 10,
-    carbs: Math.round(rawTotals.carbs * 10) / 10
-  };
+  const macroTotals = todayFoodLogs.reduce(
+    (acc, log) => ({
+      calories: acc.calories + (Number(log.calories) || 0),
+      protein: acc.protein + (Number(log.protein) || 0),
+      fats: acc.fats + (Number(log.fats) || 0),
+      carbs: acc.carbs + (Number(log.carbs) || 0)
+    }),
+    { calories: 0, protein: 0, fats: 0, carbs: 0 }
+  );
 
-  const calculateMicroMedian = () => {
-    const totalMicros = foodLogs.reduce((acc, item) => {
-      const m = item.micros || {};
-      return {
-        vitaminA: acc.vitaminA + (m.vitaminA || 0),
-        vitaminC: acc.vitaminC + (m.vitaminC || 0),
-        vitaminD: acc.vitaminD + (m.vitaminD || 0),
-        iron: acc.iron + (m.iron || 0),
-        calcium: acc.calcium + (m.calcium || 0),
-        zinc: acc.zinc + (m.zinc || 0),
-        magnesium: acc.magnesium + (m.magnesium || 0),
-        potassium: acc.potassium + (m.potassium || 0)
-      };
-    }, { vitaminA: 0, vitaminC: 0, vitaminD: 0, iron: 0, calcium: 0, zinc: 0, magnesium: 0, potassium: 0 });
+  const currentTargets = profile?.targets || DEFAULT_TARGETS;
 
-    const targets = profile.targets?.micros || DEFAULT_TARGETS.micros;
-    
-    const percentages = [
-      Math.min(100, (totalMicros.vitaminA / targets.vitaminA) * 100),
-      Math.min(100, (totalMicros.vitaminC / targets.vitaminC) * 100),
-      Math.min(100, (totalMicros.vitaminD / targets.vitaminD) * 100),
-      Math.min(100, (totalMicros.iron / targets.iron) * 100),
-      Math.min(100, (totalMicros.calcium / targets.calcium) * 100),
-      Math.min(100, (totalMicros.zinc / targets.zinc) * 100),
-      Math.min(100, (totalMicros.magnesium / targets.magnesium) * 100),
-      Math.min(100, (totalMicros.potassium / targets.potassium) * 100)
-    ].sort((a, b) => a - b);
+  const totalMicrosToday = todayFoodLogs.reduce((acc, log) => {
+    const m = log.micros || {};
+    return {
+      vitaminA: acc.vitaminA + (m.vitaminA || 0),
+      vitaminC: acc.vitaminC + (m.vitaminC || 0),
+      vitaminD: acc.vitaminD + (m.vitaminD || 0),
+      iron: acc.iron + (m.iron || 0),
+      calcium: acc.calcium + (m.calcium || 0),
+      zinc: acc.zinc + (m.zinc || 0),
+      magnesium: acc.magnesium + (m.magnesium || 0),
+      potassium: acc.potassium + (m.potassium || 0)
+    };
+  }, { vitaminA: 0, vitaminC: 0, vitaminD: 0, iron: 0, calcium: 0, zinc: 0, magnesium: 0, potassium: 0 });
 
-    const mid = Math.floor(percentages.length / 2);
-    const median = percentages.length % 2 !== 0 
-      ? percentages[mid] 
-      : (percentages[mid - 1] + percentages[mid]) / 2;
+  const microPercents = [
+    (totalMicrosToday.vitaminA / currentTargets.micros.vitaminA) * 100,
+    (totalMicrosToday.vitaminC / currentTargets.micros.vitaminC) * 100,
+    (totalMicrosToday.vitaminD / currentTargets.micros.vitaminD) * 100,
+    (totalMicrosToday.iron / currentTargets.micros.iron) * 100,
+    (totalMicrosToday.calcium / currentTargets.micros.calcium) * 100,
+    (totalMicrosToday.zinc / currentTargets.micros.zinc) * 100,
+    (totalMicrosToday.magnesium / currentTargets.micros.magnesium) * 100,
+    (totalMicrosToday.potassium / currentTargets.micros.potassium) * 100
+  ].map(p => Math.min(p, 100));
 
-    return Math.round(median);
-  };
-
-  const microMedianPercent = calculateMicroMedian();
-  const currentTargets = profile.targets || DEFAULT_TARGETS;
-
-  if (!user) {
-    return <LoginModal onLogin={handleLogin} />;
-  }
+  microPercents.sort((a, b) => a - b);
+  const microMedianPercent = Math.round((microPercents[3] + microPercents[4]) / 2);
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 transition-colors">
+    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 transition-colors duration-200 font-sans pb-12">
       
-      {/* Top Header & Live Counter Bar */}
+      {/* Top Fixed Header Navigation */}
       <Header
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         darkMode={darkMode}
         setDarkMode={setDarkMode}
-        onLogout={handleLogout}
-        macroTotals={macroTotals}
-        targets={currentTargets}
-        microMedianPercent={microMedianPercent}
+        lang={lang}
+        setLang={setLang}
         profile={profile}
         onOpenProfileModal={() => setShowProfileModal(true)}
         onOpenDbModal={() => setShowDbModal(true)}
-        lang={lang}
-        setLang={setLang}
       />
 
       {/* Main Content Area */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
-        {activeTab === 'ai' && (
+        
+        {/* Keep AiHomeScreen Mounted in DOM to preserve scroll & chat history */}
+        <div className={activeTab === 'ai' ? 'block' : 'hidden'}>
           <AiHomeScreen
             logs={{ food: foodLogs, training: trainingLogs, trading: tradingLogs }}
             onAddLog={handleAddLog}
             onQuickTabSwitch={(tab) => setActiveTab(tab)}
             lang={lang}
             profile={profile}
+            chatHistory={chatHistory}
+            setChatHistory={setChatHistory}
           />
-        )}
+        </div>
 
         {activeTab === 'calendar' && (
           <CalendarView

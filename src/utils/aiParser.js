@@ -91,7 +91,6 @@ function calculateTradeOutcome(text, tradeObj) {
       }
 
       const dollarProfit = deltaPts * multiplier * qty;
-      const formattedDollars = '$' + Math.abs(Math.round(dollarProfit)).toLocaleString();
       pnl = (dollarProfit >= 0 ? '+$' : '-$') + Math.abs(Math.round(dollarProfit)).toLocaleString();
     } else {
       pnl = '+$3,000';
@@ -107,14 +106,10 @@ function calculateTradeOutcome(text, tradeObj) {
       }
 
       const dollarLoss = deltaPts * multiplier * qty;
-      const formattedDollars = '$' + Math.abs(Math.round(dollarLoss)).toLocaleString();
       pnl = (dollarLoss >= 0 ? '+$' : '-$') + Math.abs(Math.round(dollarLoss)).toLocaleString();
     } else {
       pnl = '-$1,000';
     }
-  } else if (tradeObj.pnl && !tradeObj.pnl.includes('$')) {
-    // Convert percentage string to monetary dollars if available
-    pnl = '+$0';
   }
 
   return {
@@ -316,21 +311,14 @@ async function callGeminiFetch(prompt) {
 
 export async function parseTradeEditInstruction(instruction, currentTrade, lang = 'IT') {
   const prompt = `Sei l'AI Assistant per il Trading di Ivan.
-L'utente vuole modificare una posizione di Trading esistente utilizzando una richiesta in linguaggio naturale.
+Tone of voice: Neutro, conciso, sintetico e diretto al punto. Senza fronzoli o convenevoli prolissi.
+
+L'utente vuole modificare una posizione di Trading esistente: "${instruction}"
 
 Trade Attuale:
 ${JSON.stringify(currentTrade, null, 2)}
 
-Istruzione di modifica dell'utente: "${instruction}"
-
-Analizza l'istruzione e restituisci UNICAMENTE un oggetto JSON valido contenente i dati aggiornati del Trade.
-Se l'utente dice "ha preso full tp", "full tp hit", "stoppato in sl" o "hit sl", calcola in modo matematico preciso il profitto o la perdita ESCLUSIVAMENTE IN DOLLARI USD ($):
-- MNQ (Micro Nasdaq-100 Futures): $2.00 per punto per contratto (es. 5 contratti per +300 punti = +$3,000).
-- NQ (E-mini Nasdaq-100 Futures): $20.00 per punto per contratto.
-- MES (Micro S&P 500): $5.00 per punto per contratto.
-- ES (E-mini S&P 500): $50.00 per punto per contratto.
-
-Esempio:
+Restituisci UNICAMENTE un oggetto JSON valido:
 {
   "ticker": "${currentTrade.ticker}",
   "type": "${currentTrade.type}",
@@ -339,10 +327,8 @@ Esempio:
   "stopLoss": ${currentTrade.stopLoss},
   "status": "CHIUSO",
   "pnl": "+$3,000",
-  "notes": "Modificato da Assistant AI: Full TP raggiunto con 5 contratti MNQ."
-}
-
-Rispondi ESCLUSIVAMENTE con il JSON valido (senza markdown o altro testo).`;
+  "notes": "Modificato: Full TP raggiunto."
+}`;
 
   try {
     const replyText = await callGeminiFetch(prompt);
@@ -364,14 +350,12 @@ Rispondi ESCLUSIVAMENTE con il JSON valido (senza markdown o altro testo).`;
 
 export async function parseFoodEditInstruction(instruction, currentFoodLog, lang = 'IT') {
   const prompt = `Sei l'AI Assistant per la Nutrizione di Ivan.
-L'utente vuole modificare un pasto registrato esistente utilizzando una richiesta in linguaggio naturale.
+Tone of voice: Neutro, conciso, sintetico e diretto al punto.
 
 Pasto Attuale:
 ${JSON.stringify(currentFoodLog, null, 2)}
 
 Istruzione di modifica dell'utente: "${instruction}"
-
-Analizza la richiesta, ricalcola con MASSIMA PRECISIONE SCIENTIFICA (basata sulle banche dati USDA/INRAN) le nuove calorie, macronutrienti (Proteine, Grassi, Carboidrati), i 8 micronutrienti essenziali (vitaminA, vitaminC, vitaminD, iron, calcium, zinc, magnesium, potassium), e la scomposizione per singolo ingrediente.
 
 Restituisci UNICAMENTE un oggetto JSON valido:
 {
@@ -384,19 +368,8 @@ Restituisci UNICAMENTE un oggetto JSON valido:
   "micros": {
     "vitaminA": 150, "vitaminC": 40, "vitaminD": 2, "iron": 3, "calcium": 180, "zinc": 3, "magnesium": 70, "potassium": 550
   },
-  "ingredientsBreakdown": [
-    {
-      "name": "Pasta di semola (100g)",
-      "calories": 355,
-      "protein": 13,
-      "fats": 1.5,
-      "carbs": 72,
-      "micros": { "vitaminA": 0, "vitaminC": 0, "vitaminD": 0, "iron": 1.4, "calcium": 22, "zinc": 1.3, "magnesium": 53, "potassium": 223 }
-    }
-  ]
-}
-
-Rispondi ESCLUSIVAMENTE con il JSON valido (senza markdown o altro testo).`;
+  "ingredientsBreakdown": [...]
+}`;
 
   try {
     const replyText = await callGeminiFetch(prompt);
@@ -420,21 +393,21 @@ async function callGeminiApi(userText, currentLogs, timestamp, lang = 'IT') {
   const explicitCategory = detectIntentCategory(userText);
 
   if (explicitCategory === 'chat') {
-    const chatPrompt = `Sei l'AI Assistant personale di Ivan per Nutrizione, Allenamento e Trading Futures/Crypto.
-L'utente Ivan ti ha inviato un messaggio di saluto o una domanda generale: "${userText}"
+    const chatPrompt = `Sei l'AI Assistant per il Dashboard di Ivan.
+Tone of Voice / Stile: Neutro, conciso, estremamente sintetico e diretto al punto. Rispondi alla domanda senza convenevoli, saluti prolissi o spiegazioni non richieste.
 
-Stato attuale dell'utente Ivan:
+Messaggio utente: "${userText}"
+
+Dati disponibili:
 - Pasti loggati oggi: ${currentLogs.food?.length || 0}
 - Allenamenti: ${currentLogs.training?.length || 0}
 - Posizioni Trading: ${currentLogs.trading?.length || 0}
 
-Rispondi in modo cordiale, sintetico ed utile in ${isEn ? 'ENGLISH' : 'ITALIANO'}. NON registrare nessun log se si tratta di un saluto o di una domanda generale.
-
-Schema JSON:
+Restituisci UNICAMENTE un oggetto JSON valido:
 {
   "type": "chat",
   "category": "chat",
-  "message": "${isEn ? "👋 Hello Ivan! How can I assist you today?" : "👋 Ciao Ivan! Come posso aiutarti oggi?"}"
+  "message": "Risposta neutra, concisa e diretta alla domanda dell'utente."
 }`;
 
     try {
@@ -451,30 +424,24 @@ Schema JSON:
         type: 'chat',
         category: 'chat',
         message: isEn 
-          ? `👋 **Hello Ivan!** I'm your AI Personal Assistant. How can I help you today with your Meals, Training, or Trading?`
-          : `👋 **Ciao Ivan!** Sono il tuo Assistente AI personale. Come posso aiutarti oggi su Nutrizione, Allenamento o Trading?`
+          ? `Hello Ivan. How can I assist you with your Meals, Training, or Trading?`
+          : `Ciao Ivan. Come posso aiutarti con Pasti, Allenamento o Trading?`
       };
     }
   }
 
   const langInstruction = isEn
-    ? 'IMPORTANT: Respond strictly in ENGLISH for all text messages, headings, and explanations.'
-    : 'IMPORTANTE: Rispondi rigorosamente in ITALIANO per tutti i messaggi di testo, intestazioni e spiegazioni.';
+    ? 'TONE & STYLE: Respond strictly in ENGLISH. Be neutral, concise, direct to the point, with zero unnecessary fluff.'
+    : 'TONO E STILE: Rispondi rigorosamente in ITALIANO. Sii neutro, conciso, sintetico e diretto al punto, senza convenevoli inutili.';
 
   const detectedType = detectMealType(userText, timestamp);
 
-  const prompt = `Sei l'AI Assistant personale di Ivan per Nutrizione (Food), Allenamento (Training), Trading Futures (MNQ, NQ, MES, ES) e Crypto.
+  const prompt = `Sei l'AI Assistant personale di Ivan per Nutrizione, Allenamento e Trading.
 ${langInstruction}
 
-Analizza la richiesta dell'utente Ivan e restituisci UNICAMENTE un oggetto JSON valido.
+Analizza la richiesta dell'utente ed elabora il JSON corrispondente.
 
-SE È TRADING (Trading/Futures/Indices/Crypto/Stock):
-Se l'utente specifica il numero di contratti (es. "5 contratti micro MNQ") ed il TP/SL o "full tp", calcola il profitto ESCLUSIVAMENTE IN DOLLARI USD ($), conoscendo le specifiche reali dei contratti CME Futures:
-- MNQ (Micro E-mini Nasdaq): $2.00 per punto per contratto (es. 5 contratti per 300 punti = +$3,000).
-- NQ (E-mini Nasdaq): $20.00 per punto per contratto.
-- MES (Micro S&P 500): $5.00 per punto per contratto.
-- ES (E-mini S&P 500): $50.00 per punto per contratto.
-
+SE È TRADING:
 {
   "category": "trading",
   "type": "log_entry",
@@ -489,7 +456,7 @@ Se l'utente specifica il numero di contratti (es. "5 contratti micro MNQ") ed il
     "notes": "note",
     "pnl": "+$3,000"
   },
-  "message": "..."
+  "message": "Messaggio neutro e sintetico"
 }
 
 SE È CIBO (Food):
@@ -508,7 +475,7 @@ SE È CIBO (Food):
     },
     "ingredientsBreakdown": [...]
   },
-  "message": "..."
+  "message": "Messaggio sintetico"
 }
 
 Richiesta dell'utente Ivan: "${userText}"`;
@@ -553,8 +520,8 @@ Richiesta dell'utente Ivan: "${userText}"`;
     finalLog = calculateTradeOutcome(userText, initialTrade);
 
     message = isEn
-      ? `✅ **Trade logged!**\n\n📈 **Asset**: ${ticker} (${type})\n💵 **Entry**: $${entryPrice.toLocaleString()}\n🎯 **TP**: $${finalLog.takeProfit.toLocaleString()} | 🛑 **SL**: $${finalLog.stopLoss.toLocaleString()}\n📊 **Result**: ${finalLog.pnl} (${finalLog.status})`
-      : `✅ **Trade registrato!**\n\n📈 **Asset**: ${ticker} (${type})\n💵 **Entry**: $${entryPrice.toLocaleString()}\n🎯 **TP**: $${finalLog.takeProfit.toLocaleString()} | 🛑 **SL**: $${finalLog.stopLoss.toLocaleString()}\n📊 **Risultato**: ${finalLog.pnl} (${finalLog.status})`;
+      ? `✅ **Trade logged:** ${ticker} (${type}) | Entry: $${entryPrice.toLocaleString()} | TP: $${finalLog.takeProfit.toLocaleString()} | SL: $${finalLog.stopLoss.toLocaleString()} | PnL: ${finalLog.pnl}`
+      : `✅ **Trade registrato:** ${ticker} (${type}) | Entry: $${entryPrice.toLocaleString()} | TP: $${finalLog.takeProfit.toLocaleString()} | SL: $${finalLog.stopLoss.toLocaleString()} | PnL: ${finalLog.pnl}`;
   } else if (category === 'food') {
     finalLog.mealType = detectedType;
   }
@@ -563,7 +530,7 @@ Richiesta dell'utente Ivan: "${userText}"`;
     type: 'log_entry',
     category,
     log: finalLog,
-    message: message || `✅ **Operazione registrata!**`
+    message: message || `✅ **Operazione registrata.**`
   };
 }
 
@@ -576,8 +543,8 @@ function fallbackLocalParser(text, timestamp, lang = 'IT', currentLogs = { food:
       type: 'chat',
       category: 'chat',
       message: isEn
-        ? `👋 **Hello Ivan!** I'm your AI Personal Assistant. How can I help you today with your Meals, Training, or Trading?`
-        : `👋 **Ciao Ivan!** Sono il tuo Assistente AI personale. Come posso aiutarti oggi su Nutrizione, Allenamento o Trading?`
+        ? `Hello Ivan. How can I assist you with your Meals, Training, or Trading?`
+        : `Ciao Ivan. Come posso aiutarti con Pasti, Allenamento o Trading?`
     };
   }
 
@@ -609,8 +576,8 @@ function fallbackLocalParser(text, timestamp, lang = 'IT', currentLogs = { food:
       category: 'trading',
       log: tradeLog,
       message: isEn 
-        ? `✅ **Trade logged!**\n\n📈 **Asset**: ${ticker} (${type})\n💵 **Entry**: $${entryPrice.toLocaleString()}\n🎯 **TP**: $${tradeLog.takeProfit.toLocaleString()} | 🛑 **SL**: $${tradeLog.stopLoss.toLocaleString()}\n📊 **Result**: ${tradeLog.pnl} (${tradeLog.status})`
-        : `✅ **Trade registrato!**\n\n📈 **Asset**: ${ticker} (${type})\n💵 **Entry**: $${entryPrice.toLocaleString()}\n🎯 **TP**: $${tradeLog.takeProfit.toLocaleString()} | 🛑 **SL**: $${tradeLog.stopLoss.toLocaleString()}\n📊 **Risultato**: ${tradeLog.pnl} (${tradeLog.status})`
+        ? `✅ **Trade logged:** ${ticker} (${type}) | Entry: $${entryPrice.toLocaleString()} | TP: $${tradeLog.takeProfit.toLocaleString()} | SL: $${tradeLog.stopLoss.toLocaleString()} | PnL: ${tradeLog.pnl}`
+        : `✅ **Trade registrato:** ${ticker} (${type}) | Entry: $${entryPrice.toLocaleString()} | TP: $${tradeLog.takeProfit.toLocaleString()} | SL: $${tradeLog.stopLoss.toLocaleString()} | PnL: ${tradeLog.pnl}`
     };
   }
 
@@ -653,7 +620,7 @@ function fallbackLocalParser(text, timestamp, lang = 'IT', currentLogs = { food:
       ingredientsBreakdown: breakdown
     },
     message: isEn 
-      ? `✅ **Food logged!**\n\n📝 **Description**: ${text}\n🔥 **Calories**: ${cal} kcal | 🥩 **Protein**: ${pro}g | 🥑 **Fats**: ${fat}g | 🍞 **Carbs**: ${carb}g`
-      : `✅ **Pasto registrato!**\n\n📝 **Descrizione**: ${text}\n🔥 **Calorie**: ${cal} kcal | 🥩 **Proteine**: ${pro}g | 🥑 **Grassi**: ${fat}g | 🍞 **Carbo**: ${carb}g`
+      ? `✅ **Food logged:** ${cal} kcal | P: ${pro}g | F: ${fat}g | C: ${carb}g`
+      : `✅ **Pasto registrato:** ${cal} kcal | P: ${pro}g | F: ${fat}g | C: ${carb}g`
   };
 }
