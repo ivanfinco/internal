@@ -26,12 +26,53 @@ function isEnglishText(text) {
   return enKeywords.some(kw => lower.includes(kw));
 }
 
+function getFuturesContractSpecs(ticker, text) {
+  const sym = String(ticker || text || '').toUpperCase();
+  const lowerText = String(text || '').toLowerCase();
+
+  // Extract quantity e.g. "5 contratti", "5 micro", "5 contracts", "5 contratti micro"
+  const qtyMatch = lowerText.match(/(\d+)\s*(contratt|micro|lot|contract|posizion)/i);
+  let qty = qtyMatch ? parseInt(qtyMatch[1], 10) : 1;
+  if (qty <= 0 || qty > 500) qty = 1;
+
+  // CME Futures Point Value Multipliers:
+  // MNQ (Micro E-mini Nasdaq-100): $2.00 / point
+  // NQ (E-mini Nasdaq-100): $20.00 / point
+  // MES (Micro E-mini S&P 500): $5.00 / point
+  // ES (E-mini S&P 500): $50.00 / point
+  // MYM (Micro Dow): $0.50 / point
+  // YM (E-mini Dow): $5.00 / point
+  let multiplier = 2; // Default MNQ Micro Multiplier = $2/pt
+
+  if (sym.includes('MNQ') || lowerText.includes('mnq') || lowerText.includes('micro nq')) {
+    multiplier = 2;
+  } else if (sym.includes('NQ') || lowerText.includes('nq') || lowerText.includes('nasdaq')) {
+    if (lowerText.includes('micro') || lowerText.includes('mnq')) {
+      multiplier = 2;
+    } else {
+      multiplier = 20;
+    }
+  } else if (sym.includes('MES') || lowerText.includes('mes')) {
+    multiplier = 5;
+  } else if (sym.includes('ES') || lowerText.includes('es')) {
+    multiplier = 50;
+  } else if (sym.includes('MYM')) {
+    multiplier = 0.5;
+  } else if (sym.includes('YM')) {
+    multiplier = 5;
+  }
+
+  return { qty, multiplier };
+}
+
 function calculateTradeOutcome(text, tradeObj) {
   const lower = (text || '').toLowerCase();
   const type = (tradeObj.type || 'BUY').toUpperCase();
   const entryPrice = Number(tradeObj.entryPrice || tradeObj.entry_price || 0);
   const takeProfit = Number(tradeObj.takeProfit || tradeObj.take_profit || 0);
   const stopLoss = Number(tradeObj.stopLoss || tradeObj.stop_loss || 0);
+
+  const { qty, multiplier } = getFuturesContractSpecs(tradeObj.ticker, text);
 
   let status = tradeObj.status || 'APERTO';
   let pnl = tradeObj.pnl || '0.0%';
@@ -42,32 +83,47 @@ function calculateTradeOutcome(text, tradeObj) {
   if (isFullTp) {
     status = 'CHIUSO';
     if (entryPrice > 0 && takeProfit > 0) {
-      let pct = 0;
+      let deltaPts = 0;
       if (type === 'BUY' || type === 'LONG') {
-        pct = ((takeProfit - entryPrice) / entryPrice) * 100;
+        deltaPts = takeProfit - entryPrice;
       } else {
-        pct = ((entryPrice - takeProfit) / entryPrice) * 100;
+        deltaPts = entryPrice - takeProfit;
       }
-      pnl = (pct >= 0 ? '+' : '') + (Math.round(pct * 10) / 10) + '%';
+
+      const dollarProfit = deltaPts * multiplier * qty;
+      const pct = (deltaPts / entryPrice) * 100;
+      
+      const formattedDollars = '$' + Math.abs(Math.round(dollarProfit)).toLocaleString();
+      pnl = `+${formattedDollars} (+${(Math.round(pct * 10) / 10)}%)`;
     } else {
-      pnl = '+2.0%';
+      pnl = '+$3,000 (+1.5%)';
     }
   } else if (isSl) {
     status = 'CHIUSO';
     if (entryPrice > 0 && stopLoss > 0) {
-      let pct = 0;
+      let deltaPts = 0;
       if (type === 'BUY' || type === 'LONG') {
-        pct = ((stopLoss - entryPrice) / entryPrice) * 100;
+        deltaPts = stopLoss - entryPrice;
       } else {
-        pct = ((entryPrice - stopLoss) / entryPrice) * 100;
+        deltaPts = entryPrice - stopLoss;
       }
-      pnl = (pct >= 0 ? '+' : '') + (Math.round(pct * 10) / 10) + '%';
+
+      const dollarLoss = deltaPts * multiplier * qty;
+      const pct = (deltaPts / entryPrice) * 100;
+      
+      const formattedDollars = '$' + Math.abs(Math.round(dollarLoss)).toLocaleString();
+      pnl = `-${formattedDollars} (${(Math.round(pct * 10) / 10)}%)`;
     } else {
-      pnl = '-1.0%';
+      pnl = '-$1,000 (-0.5%)';
     }
   }
 
-  return { ...tradeObj, status, pnl };
+  return {
+    ...tradeObj,
+    size: `${qty} Contrattt${qty > 1 ? 'i' : 'o'} (${tradeObj.ticker || 'MNQ1!'})`,
+    status,
+    pnl
+  };
 }
 
 function extractTickerSymbol(text, rawTicker) {
@@ -78,7 +134,9 @@ function extractTickerSymbol(text, rawTicker) {
   const cleanText = (text || '').trim();
 
   // 1. Index Futures & Commodities
+  if (/\b(mnq1!|mnq1|mnq|micro nq)\b/i.test(cleanText)) return 'MNQ1!';
   if (/\b(nq1!|nq1|nq|nasdaq|us100)\b/i.test(cleanText)) return 'NQ1!';
+  if (/\b(mes1!|mes1|mes|micro es)\b/i.test(cleanText)) return 'MES1!';
   if (/\b(es1!|es1|es|sp500|us500)\b/i.test(cleanText)) return 'ES1!';
   if (/\b(gold|xauusd|xau)\b/i.test(cleanText)) return 'XAU/USD';
   if (/\b(oil|cl|wti)\b/i.test(cleanText)) return 'WTI/OIL';
@@ -94,7 +152,7 @@ function extractTickerSymbol(text, rawTicker) {
   const forexMatch = cleanText.match(/\b(eurusd|gbpusd|usdjpy|audusd|dxy)\b/i);
   if (forexMatch) return forexMatch[1].toUpperCase();
 
-  // 4. Any explicit 2-6 char symbol (e.g. NQ1, ES1, RTY, FDAX)
+  // 4. Any explicit 2-6 char symbol (e.g. NQ1, ES1, MNQ1, RTY)
   const genericMatch = cleanText.match(/\b([a-z0-9!]{2,6})\b/i);
   if (genericMatch) {
     const sym = genericMatch[1].toUpperCase();
@@ -103,7 +161,7 @@ function extractTickerSymbol(text, rawTicker) {
     }
   }
 
-  return 'NQ1!';
+  return 'MNQ1!';
 }
 
 function detectIntentCategory(text) {
@@ -126,6 +184,7 @@ function detectIntentCategory(text) {
     lower.includes('sold ') || 
     lower.includes('long ') || 
     lower.includes('short ') || 
+    lower.includes('mnq') ||
     lower.includes('nq') ||
     lower.includes('nq1') ||
     lower.includes('es1') ||
@@ -266,7 +325,11 @@ ${JSON.stringify(currentTrade, null, 2)}
 Istruzione di modifica dell'utente: "${instruction}"
 
 Analizza l'istruzione e restituisci UNICAMENTE un oggetto JSON valido contenente i dati aggiornati del Trade.
-Se l'utente dice "ha preso full tp", "full tp hit", "stoppato in sl" o "hit sl", calcola in modo matematico preciso la percentuale di profitto (+%) o perdita (-%), imposta status: "CHIUSO" e restituisci il pnl esatto.
+Se l'utente dice "ha preso full tp", "full tp hit", "stoppato in sl" o "hit sl", calcola in modo matematico preciso il profitto in Dollari ($) ed in percentuale (%), basandoti sulle specifiche dei contratti CME Futures:
+- MNQ (Micro Nasdaq-100 Futures): $2.00 per punto per contratto (es. 5 contratti per +300 punti = +$3.000).
+- NQ (E-mini Nasdaq-100 Futures): $20.00 per punto per contratto.
+- MES (Micro S&P 500): $5.00 per punto per contratto.
+- ES (E-mini S&P 500): $50.00 per punto per contratto.
 
 Esempio:
 {
@@ -276,8 +339,8 @@ Esempio:
   "takeProfit": ${currentTrade.takeProfit},
   "stopLoss": ${currentTrade.stopLoss},
   "status": "CHIUSO",
-  "pnl": "+1.5%",
-  "notes": "Modificato da Assistant AI: Full TP raggiunto."
+  "pnl": "+$3,000 (+1.5%)",
+  "notes": "Modificato da Assistant AI: Full TP raggiunto con 5 contratti MNQ."
 }
 
 Rispondi ESCLUSIVAMENTE con il JSON valido (senza markdown o altro testo).`;
@@ -358,7 +421,7 @@ async function callGeminiApi(userText, currentLogs, timestamp, lang = 'IT') {
   const explicitCategory = detectIntentCategory(userText);
 
   if (explicitCategory === 'chat') {
-    const chatPrompt = `Sei l'AI Assistant personale di Ivan.
+    const chatPrompt = `Sei l'AI Assistant personale di Ivan per Nutrizione, Allenamento e Trading Futures/Crypto.
 L'utente Ivan ti ha inviato un messaggio di saluto o una domanda generale: "${userText}"
 
 Stato attuale dell'utente Ivan:
@@ -401,26 +464,31 @@ Schema JSON:
 
   const detectedType = detectMealType(userText, timestamp);
 
-  const prompt = `Sei l'AI Assistant personale di Ivan per Nutrizione (Food), Allenamento (Training), Trading e Archivio Storico.
+  const prompt = `Sei l'AI Assistant personale di Ivan per Nutrizione (Food), Allenamento (Training), Trading Futures (MNQ, NQ, MES, ES) e Crypto.
 ${langInstruction}
 
 Analizza la richiesta dell'utente Ivan e restituisci UNICAMENTE un oggetto JSON valido.
 
 SE È TRADING (Trading/Futures/Indices/Crypto/Stock):
-Se l'utente specifica "full tp", "preso tp" o "stoppato in sl", calcola la percentuale di guadagno/perdita, imposta status: "CHIUSO" ed il PnL (% o $).
+Se l'utente specifica il numero di contratti (es. "5 contratti micro MNQ") ed il TP/SL o "full tp", calcola il profitto sia in DOLLARI ($) sia in PERCENTUALE (%), conoscendo le specifiche reali dei contratti CME Futures:
+- MNQ (Micro E-mini Nasdaq): $2.00 per punto per contratto (es. 5 contratti per 300 punti = +$3.000).
+- NQ (E-mini Nasdaq): $20.00 per punto per contratto.
+- MES (Micro S&P 500): $5.00 per punto per contratto.
+- ES (E-mini S&P 500): $50.00 per punto per contratto.
+
 {
   "category": "trading",
   "type": "log_entry",
   "log": {
-    "ticker": "NQ1!" | "ES1!" | "BTC/USDT" | "NVDA",
+    "ticker": "MNQ1!" | "NQ1!" | "ES1!" | "BTC/USDT",
     "type": "BUY" | "SELL",
     "entryPrice": 19500,
     "takeProfit": 19800,
     "stopLoss": 19400,
-    "size": "1 Contratto",
+    "size": "5 Contratti Micro (MNQ1!)",
     "status": "APERTO" | "CHIUSO",
     "notes": "note",
-    "pnl": "+1.5%"
+    "pnl": "+$3,000 (+1.5%)"
   },
   "message": "..."
 }
@@ -486,8 +554,8 @@ Richiesta dell'utente Ivan: "${userText}"`;
     finalLog = calculateTradeOutcome(userText, initialTrade);
 
     message = isEn
-      ? `✅ **Trade logged!**\n\n📈 **Asset**: ${ticker} (${type})\n💵 **Entry**: $${entryPrice.toLocaleString()}\n🎯 **TP**: $${finalLog.takeProfit.toLocaleString()} | 🛑 **SL**: $${finalLog.stopLoss.toLocaleString()}\n📊 **Status**: ${finalLog.status} (${finalLog.pnl})`
-      : `✅ **Trade registrato!**\n\n📈 **Asset**: ${ticker} (${type})\n💵 **Entry**: $${entryPrice.toLocaleString()}\n🎯 **TP**: $${finalLog.takeProfit.toLocaleString()} | 🛑 **SL**: $${finalLog.stopLoss.toLocaleString()}\n📊 **Stato**: ${finalLog.status} (${finalLog.pnl})`;
+      ? `✅ **Trade logged!**\n\n📈 **Asset**: ${ticker} (${type})\n💵 **Entry**: $${entryPrice.toLocaleString()}\n🎯 **TP**: $${finalLog.takeProfit.toLocaleString()} | 🛑 **SL**: $${finalLog.stopLoss.toLocaleString()}\n📊 **Result**: ${finalLog.pnl} (${finalLog.status})`
+      : `✅ **Trade registrato!**\n\n📈 **Asset**: ${ticker} (${type})\n💵 **Entry**: $${entryPrice.toLocaleString()}\n🎯 **TP**: $${finalLog.takeProfit.toLocaleString()} | 🛑 **SL**: $${finalLog.stopLoss.toLocaleString()}\n📊 **Risultato**: ${finalLog.pnl} (${finalLog.status})`;
   } else if (category === 'food') {
     finalLog.mealType = detectedType;
   }
@@ -542,8 +610,8 @@ function fallbackLocalParser(text, timestamp, lang = 'IT', currentLogs = { food:
       category: 'trading',
       log: tradeLog,
       message: isEn 
-        ? `✅ **Trade logged!**\n\n📈 **Asset**: ${ticker} (${type})\n💵 **Entry**: $${entryPrice.toLocaleString()}\n🎯 **TP**: $${tradeLog.takeProfit.toLocaleString()} | 🛑 **SL**: $${tradeLog.stopLoss.toLocaleString()}\n📊 **Status**: ${tradeLog.status} (${tradeLog.pnl})`
-        : `✅ **Trade registrato!**\n\n📈 **Asset**: ${ticker} (${type})\n💵 **Entry**: $${entryPrice.toLocaleString()}\n🎯 **TP**: $${tradeLog.takeProfit.toLocaleString()} | 🛑 **SL**: $${tradeLog.stopLoss.toLocaleString()}\n📊 **Stato**: ${tradeLog.status} (${tradeLog.pnl})`
+        ? `✅ **Trade logged!**\n\n📈 **Asset**: ${ticker} (${type})\n💵 **Entry**: $${entryPrice.toLocaleString()}\n🎯 **TP**: $${tradeLog.takeProfit.toLocaleString()} | 🛑 **SL**: $${tradeLog.stopLoss.toLocaleString()}\n📊 **Result**: ${tradeLog.pnl} (${tradeLog.status})`
+        : `✅ **Trade registrato!**\n\n📈 **Asset**: ${ticker} (${type})\n💵 **Entry**: $${entryPrice.toLocaleString()}\n🎯 **TP**: $${tradeLog.takeProfit.toLocaleString()} | 🛑 **SL**: $${tradeLog.stopLoss.toLocaleString()}\n📊 **Risultato**: ${tradeLog.pnl} (${tradeLog.status})`
     };
   }
 

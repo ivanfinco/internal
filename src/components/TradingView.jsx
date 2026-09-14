@@ -16,12 +16,12 @@ export default function TradingView({ tradingLogs = [], onAddTradingLog, onDelet
   const [isAiProcessing, setIsAiProcessing] = useState(false);
 
   // Manual Add Form State
-  const [ticker, setTicker] = useState('BTC/USDT');
+  const [ticker, setTicker] = useState('MNQ1!');
   const [type, setType] = useState('BUY');
-  const [entryPrice, setEntryPrice] = useState(62500);
-  const [takeProfit, setTakeProfit] = useState(66000);
-  const [stopLoss, setStopLoss] = useState(60000);
-  const [notes, setNotes] = useState('Breakout di struttura 4H');
+  const [entryPrice, setEntryPrice] = useState(19500);
+  const [takeProfit, setTakeProfit] = useState(19800);
+  const [stopLoss, setStopLoss] = useState(19400);
+  const [notes, setNotes] = useState('Breakout 5 micro contratti MNQ');
 
   // Edit Modal Form State
   const [editTicker, setEditTicker] = useState('');
@@ -34,11 +34,18 @@ export default function TradingView({ tradingLogs = [], onAddTradingLog, onDelet
   const [editNotes, setEditNotes] = useState('');
 
   // ═══════════════════════════════════════════════════
-  // REAL STATISTICAL CALCULATORS FOR TRADING
+  // REAL STATISTICAL CALCULATORS FOR TRADING & FUTURES
   // ═══════════════════════════════════════════════════
   const parsePnlNum = (pnlStr) => {
     if (!pnlStr) return 0;
-    const clean = String(pnlStr).replace('$', '').replace('%', '').replace('+', '').trim();
+    const str = String(pnlStr);
+    const dollarMatch = str.match(/([+-]?\$[\d,]+)/) || str.match(/([+-]?[\d,]+\$)/);
+    if (dollarMatch) {
+      const clean = dollarMatch[1].replace('$', '').replace(/,/g, '').trim();
+      const val = parseFloat(clean);
+      if (!isNaN(val)) return val;
+    }
+    const clean = str.replace('$', '').replace('%', '').replace('+', '').replace(/,/g, '').trim();
     const val = parseFloat(clean);
     return isNaN(val) ? 0 : val;
   };
@@ -55,7 +62,10 @@ export default function TradingView({ tradingLogs = [], onAddTradingLog, onDelet
     : (safeLogs.length > 0 ? 100 : 0);
 
   const totalPnlVal = safeLogs.reduce((sum, t) => sum + parsePnlNum(t.pnl), 0);
-  const realPnlDisplay = (totalPnlVal >= 0 ? '+' : '') + (Math.round(totalPnlVal * 10) / 10) + '%';
+  const isDollarPnl = closedTrades.some(t => String(t.pnl).includes('$'));
+  const realPnlDisplay = isDollarPnl
+    ? (totalPnlVal >= 0 ? '+$' : '-$') + Math.abs(Math.round(totalPnlVal)).toLocaleString()
+    : (totalPnlVal >= 0 ? '+' : '') + (Math.round(totalPnlVal * 10) / 10) + '%';
 
   const grossProfit = winningTrades.reduce((sum, t) => sum + parsePnlNum(t.pnl), 0);
   const grossLoss = Math.abs(losingTrades.reduce((sum, t) => sum + parsePnlNum(t.pnl), 0));
@@ -78,7 +88,7 @@ export default function TradingView({ tradingLogs = [], onAddTradingLog, onDelet
       entryPrice: Number(entryPrice) || 0,
       takeProfit: Number(takeProfit) || 0,
       stopLoss: Number(stopLoss) || 0,
-      size: '1 Posizione',
+      size: '1 Contratto',
       status: 'APERTO',
       notes,
       pnl: '0.0%'
@@ -177,7 +187,7 @@ export default function TradingView({ tradingLogs = [], onAddTradingLog, onDelet
             </h1>
           </div>
           <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-            Tracciamento e gestione delle posizioni crypto, stock e forex
+            Tracciamento e gestione delle posizioni Futures (MNQ, NQ, MES, ES), Crypto e Stock
           </p>
         </div>
 
@@ -400,7 +410,7 @@ export default function TradingView({ tradingLogs = [], onAddTradingLog, onDelet
                   <input
                     type="text"
                     required
-                    placeholder="BTC/USDT"
+                    placeholder="MNQ1!"
                     value={ticker}
                     onChange={(e) => setTicker(e.target.value)}
                     className="w-full p-3 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-sm font-medium dark:text-white uppercase"
@@ -508,7 +518,7 @@ export default function TradingView({ tradingLogs = [], onAddTradingLog, onDelet
                   type="text"
                   value={aiEditPrompt}
                   onChange={(e) => setAiEditPrompt(e.target.value)}
-                  placeholder={isEn ? "e.g. 'Set TP to $68,500 and close position with +12.5% PnL'" : "es. 'Imposta TP a 68500$ e chiudi la posizione in profitto del +12.5%'"}
+                  placeholder={isEn ? "e.g. '5 MNQ contracts hit Full TP with +$3,000 profit'" : "es. '5 contratti MNQ hanno preso Full TP con +3000$ di profitto'"}
                   className="flex-1 p-3 bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs font-medium dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
                 <button
@@ -599,7 +609,7 @@ export default function TradingView({ tradingLogs = [], onAddTradingLog, onDelet
                     type="text"
                     value={editPnl}
                     onChange={(e) => setEditPnl(e.target.value)}
-                    placeholder="es. +5.4% o +$500"
+                    placeholder="es. +$3,000 (+1.5%)"
                     className="w-full p-3 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-sm font-mono font-bold text-emerald-500 dark:text-emerald-400"
                   />
                 </div>
