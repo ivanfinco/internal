@@ -10,16 +10,16 @@ export default function Header({
   darkMode, 
   setDarkMode, 
   onLogout,
-  macroTotals,
-  targets,
-  microMedianPercent,
-  profile,
+  macroTotals = { calories: 0, protein: 0, fats: 0, carbs: 0 },
+  targets = { calories: 2500, protein: 180, fats: 70, carbs: 280 },
+  microMedianPercent = 0,
+  profile = {},
   onOpenProfileModal,
   onOpenDbModal,
-  lang,
+  lang = 'IT',
   setLang
 }) {
-  const t = TRANSLATIONS[lang];
+  const t = TRANSLATIONS[lang] || TRANSLATIONS['IT'];
 
   const tabs = [
     { id: 'ai', label: t.tabs.ai, icon: Sparkles },
@@ -30,27 +30,31 @@ export default function Header({
     { id: 'calendar', label: t.tabs.calendar, icon: CalendarIcon },
   ];
 
-  const avatar = profile.avatar || '⚡';
+  const safeMacros = macroTotals || { calories: 0, protein: 0, fats: 0, carbs: 0 };
+  const safeTargets = targets || { calories: 2500, protein: 180, fats: 70, carbs: 280 };
+  const safeProfile = profile || {};
+
+  const avatar = safeProfile.avatar || '⚡';
   const isImageAvatar = avatar && (avatar.startsWith('http') || avatar.startsWith('data:image'));
 
-  const bodyBadge = profile.bodyType === 'skinny' ? '⚡ Lean'
-    : profile.bodyType === 'fit' ? '🔥 Fit'
-    : profile.bodyType === 'chubby' ? '🐻 Soft'
+  const bodyBadge = safeProfile.bodyType === 'skinny' ? '⚡ Lean'
+    : safeProfile.bodyType === 'fit' ? '🔥 Fit'
+    : safeProfile.bodyType === 'chubby' ? '🐻 Soft'
     : '⚖️ Avg';
 
-  const calPercent = Math.min(100, Math.round((macroTotals.calories / targets.calories) * 100));
-  const proPercent = Math.min(100, Math.round((macroTotals.protein / targets.protein) * 100));
-  const fatPercent = Math.min(100, Math.round((macroTotals.fats / targets.fats) * 100));
-  const carbPercent = Math.min(100, Math.round((macroTotals.carbs / targets.carbs) * 100));
+  const calPercent = Math.min(100, Math.round(((safeMacros.calories || 0) / (safeTargets.calories || 2500)) * 100));
+  const proPercent = Math.min(100, Math.round(((safeMacros.protein || 0) / (safeTargets.protein || 180)) * 100));
+  const fatPercent = Math.min(100, Math.round(((safeMacros.fats || 0) / (safeTargets.fats || 70)) * 100));
+  const carbPercent = Math.min(100, Math.round(((safeMacros.carbs || 0) / (safeTargets.carbs || 280)) * 100));
 
   return (
     <header className="sticky top-0 z-40 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl border-b border-zinc-200/80 dark:border-zinc-800/80 transition-colors">
       
       {/* Top Header & Quick Profile Info */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-3 pb-2.5 flex flex-wrap items-center justify-between gap-4">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pt-3 pb-2.5 flex flex-wrap items-center justify-between gap-3 sm:gap-4">
         
         {/* Welcome Greeting & Custom Profile Avatar */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5 sm:gap-3">
           <button
             onClick={onOpenProfileModal}
             className="relative group shrink-0 transition-transform active:scale-95"
@@ -59,11 +63,11 @@ export default function Header({
             {isImageAvatar ? (
               <img
                 src={avatar}
-                alt={profile.name}
-                className="w-10 h-10 rounded-2xl object-cover border border-emerald-500/40 shadow-xs"
+                alt={safeProfile.name || 'Ivan'}
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl object-cover border border-emerald-500/40 shadow-xs"
               />
             ) : (
-              <div className="flex items-center justify-center w-10 h-10 rounded-2xl bg-zinc-100 dark:bg-zinc-800 text-xl border border-zinc-200/80 dark:border-zinc-700/80 shadow-xs">
+              <div className="flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-zinc-100 dark:bg-zinc-800 text-lg sm:text-xl border border-zinc-200/80 dark:border-zinc-700/80 shadow-xs">
                 {avatar}
               </div>
             )}
@@ -72,30 +76,30 @@ export default function Header({
           
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-base font-bold text-zinc-900 dark:text-white leading-tight">
-                {profile.name || 'Ivan'}
+              <h2 className="text-sm sm:text-base font-bold text-zinc-900 dark:text-white leading-tight">
+                {safeProfile.name || 'Ivan'}
               </h2>
               <button
                 onClick={onOpenProfileModal}
-                className="px-2.5 py-0.5 text-[10px] font-semibold bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all flex items-center gap-1"
+                className="px-2 py-0.5 text-[10px] font-semibold bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all flex items-center gap-1"
               >
-                <span>{profile.age}y • {profile.weight}kg • {profile.height}cm</span>
-                <span className="font-bold border-l border-zinc-300 dark:border-zinc-700 pl-1.5">{bodyBadge}</span>
+                <span>{safeProfile.age || 31}y • {safeProfile.weight || 80}kg • {safeProfile.height || 180}cm</span>
+                <span className="font-bold border-l border-zinc-300 dark:border-zinc-700 pl-1">{bodyBadge}</span>
               </button>
             </div>
-            <p className="text-[11px] text-zinc-400">
+            <p className="text-[10px] sm:text-[11px] text-zinc-400">
               {t.subtitle}
             </p>
           </div>
         </div>
 
         {/* Right Controls: Database Status, Language Selector, Theme Switcher & Logout */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           
           {/* Database Status Button */}
           <button
             onClick={onOpenDbModal}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold text-xs rounded-2xl transition-all border border-emerald-500/20"
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold text-xs rounded-2xl transition-all border border-emerald-500/20"
             title="Diagnostica Connessione Database Supabase"
           >
             <Database className="w-3.5 h-3.5" />
@@ -104,10 +108,10 @@ export default function Header({
           </button>
 
           {/* Language Selector Dropdown */}
-          <div className="flex items-center bg-zinc-100 dark:bg-zinc-800/80 p-1 rounded-2xl border border-zinc-200/80 dark:border-zinc-700/80">
+          <div className="flex items-center bg-zinc-100 dark:bg-zinc-800/80 p-0.5 sm:p-1 rounded-2xl border border-zinc-200/80 dark:border-zinc-700/80">
             <button
               onClick={() => setLang('IT')}
-              className={`px-2.5 py-1 text-xs font-bold rounded-xl transition-all ${
+              className={`px-2 sm:px-2.5 py-1 text-xs font-bold rounded-xl transition-all ${
                 lang === 'IT' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-xs' : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-white'
               }`}
             >
@@ -115,7 +119,7 @@ export default function Header({
             </button>
             <button
               onClick={() => setLang('EN')}
-              className={`px-2.5 py-1 text-xs font-bold rounded-xl transition-all ${
+              className={`px-2 sm:px-2.5 py-1 text-xs font-bold rounded-xl transition-all ${
                 lang === 'EN' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-xs' : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-white'
               }`}
             >
@@ -126,26 +130,28 @@ export default function Header({
           {/* Theme Switcher */}
           <button
             onClick={() => setDarkMode(!darkMode)}
-            className="p-2 rounded-2xl bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300 transition-all border border-zinc-200/80 dark:border-zinc-700/80"
+            className="p-1.5 sm:p-2 rounded-2xl bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300 transition-all border border-zinc-200/80 dark:border-zinc-700/80"
             title={darkMode ? "Passa a Tema Chiaro" : "Passa a Tema Scuro"}
           >
             {darkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-indigo-600" />}
           </button>
 
-          {/* Logout */}
-          <button
-            onClick={onLogout}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl text-xs font-semibold bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 transition-all"
-            title="Disconnetti"
-          >
-            <LogOut className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Esci</span>
-          </button>
+          {/* Logout if provided */}
+          {onLogout && (
+            <button
+              onClick={onLogout}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl text-xs font-semibold bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 transition-all"
+              title="Disconnetti"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Esci</span>
+            </button>
+          )}
         </div>
       </div>
 
       {/* Live Macros & Micronutrients Bar */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 border-t border-b border-zinc-100 dark:border-zinc-800/60 bg-zinc-50/50 dark:bg-zinc-950/40">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2 border-t border-b border-zinc-100 dark:border-zinc-800/60 bg-zinc-50/50 dark:bg-zinc-950/40">
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 text-xs">
           
           {/* Calorie Counter */}
@@ -155,7 +161,7 @@ export default function Header({
                 <Flame className="w-3 h-3 text-amber-500" /> {t.calories}
               </span>
               <span className="font-mono font-bold text-zinc-900 dark:text-white text-[11px]">
-                {macroTotals.calories} / {targets.calories}
+                {safeMacros.calories} / {safeTargets.calories}
               </span>
             </div>
             <div className="w-full bg-zinc-100 dark:bg-zinc-700 rounded-full h-1.5 overflow-hidden">
@@ -173,7 +179,7 @@ export default function Header({
                 🥩 {t.protein}
               </span>
               <span className="font-mono font-bold text-zinc-900 dark:text-white text-[11px]">
-                {macroTotals.protein}g / {targets.protein}g
+                {safeMacros.protein}g / {safeTargets.protein}g
               </span>
             </div>
             <div className="w-full bg-zinc-100 dark:bg-zinc-700 rounded-full h-1.5 overflow-hidden">
@@ -191,7 +197,7 @@ export default function Header({
                 🥑 {t.fats}
               </span>
               <span className="font-mono font-bold text-zinc-900 dark:text-white text-[11px]">
-                {macroTotals.fats}g / {targets.fats}g
+                {safeMacros.fats}g / {safeTargets.fats}g
               </span>
             </div>
             <div className="w-full bg-zinc-100 dark:bg-zinc-700 rounded-full h-1.5 overflow-hidden">
@@ -209,7 +215,7 @@ export default function Header({
                 🍞 {t.carbs}
               </span>
               <span className="font-mono font-bold text-zinc-900 dark:text-white text-[11px]">
-                {macroTotals.carbs}g / {targets.carbs}g
+                {safeMacros.carbs}g / {safeTargets.carbs}g
               </span>
             </div>
             <div className="w-full bg-zinc-100 dark:bg-zinc-700 rounded-full h-1.5 overflow-hidden">
@@ -242,7 +248,7 @@ export default function Header({
       </div>
 
       {/* Navigation Tabs */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex space-x-1.5 overflow-x-auto py-2 no-scrollbar">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 flex space-x-1.5 overflow-x-auto py-2 no-scrollbar">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;

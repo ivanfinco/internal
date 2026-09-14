@@ -264,7 +264,7 @@ export default function App() {
 
   // Macro Totals for Today
   const todayStr = new Date().toISOString().split('T')[0];
-  const todayFoodLogs = foodLogs.filter(log => log.timestamp && log.timestamp.startsWith(todayStr));
+  const todayFoodLogs = (foodLogs || []).filter(log => log && log.timestamp && log.timestamp.startsWith(todayStr));
 
   const macroTotals = todayFoodLogs.reduce(
     (acc, log) => ({
@@ -293,18 +293,18 @@ export default function App() {
   }, { vitaminA: 0, vitaminC: 0, vitaminD: 0, iron: 0, calcium: 0, zinc: 0, magnesium: 0, potassium: 0 });
 
   const microPercents = [
-    (totalMicrosToday.vitaminA / currentTargets.micros.vitaminA) * 100,
-    (totalMicrosToday.vitaminC / currentTargets.micros.vitaminC) * 100,
-    (totalMicrosToday.vitaminD / currentTargets.micros.vitaminD) * 100,
-    (totalMicrosToday.iron / currentTargets.micros.iron) * 100,
-    (totalMicrosToday.calcium / currentTargets.micros.calcium) * 100,
-    (totalMicrosToday.zinc / currentTargets.micros.zinc) * 100,
-    (totalMicrosToday.magnesium / currentTargets.micros.magnesium) * 100,
-    (totalMicrosToday.potassium / currentTargets.micros.potassium) * 100
-  ].map(p => Math.min(p, 100));
+    (totalMicrosToday.vitaminA / (currentTargets.micros?.vitaminA || 900)) * 100,
+    (totalMicrosToday.vitaminC / (currentTargets.micros?.vitaminC || 90)) * 100,
+    (totalMicrosToday.vitaminD / (currentTargets.micros?.vitaminD || 20)) * 100,
+    (totalMicrosToday.iron / (currentTargets.micros?.iron || 14)) * 100,
+    (totalMicrosToday.calcium / (currentTargets.micros?.calcium || 1000)) * 100,
+    (totalMicrosToday.zinc / (currentTargets.micros?.zinc || 11)) * 100,
+    (totalMicrosToday.magnesium / (currentTargets.micros?.magnesium || 400)) * 100,
+    (totalMicrosToday.potassium / (currentTargets.micros?.potassium || 3500)) * 100
+  ].map(p => Math.min(isNaN(p) ? 0 : p, 100));
 
   microPercents.sort((a, b) => a - b);
-  const microMedianPercent = Math.round((microPercents[3] + microPercents[4]) / 2);
+  const microMedianPercent = Math.round(((microPercents[3] || 0) + (microPercents[4] || 0)) / 2);
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 transition-colors duration-200 font-sans pb-12">
@@ -318,12 +318,15 @@ export default function App() {
         lang={lang}
         setLang={setLang}
         profile={profile}
+        macroTotals={macroTotals}
+        targets={currentTargets}
+        microMedianPercent={microMedianPercent}
         onOpenProfileModal={() => setShowProfileModal(true)}
         onOpenDbModal={() => setShowDbModal(true)}
       />
 
       {/* Main Content Area */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+      <main className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 pt-4 sm:pt-6">
         
         {/* Keep AiHomeScreen Mounted in DOM to preserve scroll & chat history */}
         <div className={activeTab === 'ai' ? 'block' : 'hidden'}>
