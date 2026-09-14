@@ -8,6 +8,7 @@ import TrainingView from './components/TrainingView';
 import TradingView from './components/TradingView';
 import FinanceView from './components/FinanceView';
 import ProfileModal from './components/ProfileModal';
+import DatabaseStatusModal from './components/DatabaseStatusModal';
 import { parseScientificBreakdown } from './utils/nutritionEngine';
 import {
   fetchUserProfile,
@@ -69,6 +70,7 @@ export default function App() {
   });
 
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showDbModal, setShowDbModal] = useState(false);
 
   // User Personal Profile State
   const [profile, setProfile] = useState(() => {
@@ -330,6 +332,7 @@ export default function App() {
         microMedianPercent={microMedianPercent}
         profile={profile}
         onOpenProfileModal={() => setShowProfileModal(true)}
+        onOpenDbModal={() => setShowDbModal(true)}
         lang={lang}
         setLang={setLang}
       />
@@ -394,6 +397,14 @@ export default function App() {
           profile={profile}
           onSave={handleUpdateProfile}
           onClose={() => setShowProfileModal(false)}
+          lang={lang}
+        />
+      )}
+
+      {/* Root-Level Independent Database Status Diagnostics Modal Popup */}
+      {showDbModal && (
+        <DatabaseStatusModal
+          onClose={() => setShowDbModal(false)}
           lang={lang}
         />
       )}

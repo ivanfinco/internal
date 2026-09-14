@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { 
   Sun, Moon, LogOut, Flame, Dumbbell, TrendingUp, Wallet, Sparkles, Utensils, Award, Calendar as CalendarIcon, Database 
 } from 'lucide-react';
 import { TRANSLATIONS } from '../constants/translations';
-import DatabaseStatusModal from './DatabaseStatusModal';
 
 export default function Header({ 
   activeTab, 
@@ -16,11 +15,11 @@ export default function Header({
   microMedianPercent,
   profile,
   onOpenProfileModal,
+  onOpenDbModal,
   lang,
   setLang
 }) {
   const t = TRANSLATIONS[lang];
-  const [showDbModal, setShowDbModal] = useState(false);
 
   const tabs = [
     { id: 'ai', label: t.tabs.ai, icon: Sparkles },
@@ -95,7 +94,7 @@ export default function Header({
           
           {/* Database Status Button */}
           <button
-            onClick={() => setShowDbModal(true)}
+            onClick={onOpenDbModal}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold text-xs rounded-2xl transition-all border border-emerald-500/20"
             title="Diagnostica Connessione Database Supabase"
           >
@@ -271,11 +270,6 @@ export default function Header({
           );
         })}
       </div>
-
-      {/* Database Status Modal */}
-      {showDbModal && (
-        <DatabaseStatusModal onClose={() => setShowDbModal(false)} lang={lang} />
-      )}
 
     </header>
   );
