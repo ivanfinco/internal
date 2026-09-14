@@ -98,6 +98,15 @@ function extractTickerSymbol(text, rawTicker) {
 function detectIntentCategory(text) {
   const lower = (text || '').toLowerCase().trim();
 
+  // 1. Greetings & General Conversational Questions (DO NOT LOG AS MEAL OR TRADE!)
+  const isGreeting = /^(ciao|hello|hey|hei|buongiorno|buonasera|salve|hola|hi)\b/i.test(lower);
+  const isQuestion = /^(quante|quanto|quanti|quante|mostrami|quali|come|cosa|perché|perche|chi|can|what|how|show|tell)\b/i.test(lower);
+  
+  if (isGreeting || isQuestion || lower === 'ciao' || lower === 'hello' || lower === 'help') {
+    return 'chat';
+  }
+
+  // 2. Trading Intent
   if (
     lower.startsWith('trading') || 
     lower.includes('buy ') || 
@@ -122,6 +131,7 @@ function detectIntentCategory(text) {
     return 'trading';
   }
 
+  // 3. Training Intent
   if (
     lower.startsWith('training') || 
     lower.startsWith('allenamento') || 
@@ -135,7 +145,15 @@ function detectIntentCategory(text) {
     return 'training';
   }
 
-  return 'food';
+  // 4. Food Intent (Must contain food/nutrition keywords)
+  const isFood = lower.startsWith('food') || lower.includes('mangiato') || lower.includes('pranzo') || lower.includes('cena') || lower.includes('colazione') || lower.includes('spuntino') || lower.includes('pollo') || lower.includes('riso') || lower.includes('pasta') || lower.includes('uova') || lower.includes('yogurt') || lower.includes('latte') || lower.includes('pane') || lower.includes('mela') || lower.includes('banana') || lower.includes('insalata') || lower.includes('olio') || lower.includes('burro') || lower.includes('0%') || lower.includes('kcal') || lower.includes('grammi') || /\d+g\b/.test(lower);
+
+  if (isFood) {
+    return 'food';
+  }
+
+  // Default to Chat (Do NOT log dummy food!)
+  return 'chat';
 }
 
 function detectMealType(text, timestamp) {
@@ -180,7 +198,7 @@ export async function parseUserInput(rawText, currentLogs = { food: [], training
     console.warn("Assistant Gemini API call failed, falling back to scientific engine:", err);
   }
 
-  return fallbackLocalParser(text, timestamp, lang);
+  return fallbackLocalParser(text, timestamp, lang, currentLogs);
 }
 
 async function callGeminiFetch(prompt) {
@@ -323,6 +341,44 @@ async function callGeminiApi(userText, currentLogs, timestamp, lang = 'IT') {
   const isEn = lang === 'EN';
   const explicitCategory = detectIntentCategory(userText);
 
+  if (explicitCategory === 'chat') {
+    const chatPrompt = `Sei l'AI Assistant personale di Ivan.
+L'utente Ivan ti ha inviato un messaggio di saluto o una domanda generale: "${userText}"
+
+Stato attuale dell'utente Ivan:
+- Pasti loggati oggi: ${currentLogs.food?.length || 0}
+- Allenamenti: ${currentLogs.training?.length || 0}
+- Posizioni Trading: ${currentLogs.trading?.length || 0}
+
+Rispondi in modo cordiale, sintetico ed utile in ${isEn ? 'INGLESE' : 'ITALIANO'}. NON registrare nessun log se si tratta di un saluto o di una domanda generale.
+
+Schema JSON:
+{
+  "type": "chat",
+  "category": "chat",
+  "message": "👋 Ciao Ivan! Come posso aiutarti oggi?"
+}`;
+
+    try {
+      const replyText = await callGeminiFetch(chatPrompt);
+      const cleanJson = replyText.replace(/```json/g, '').replace(/```/g, '').trim();
+      const parsed = JSON.parse(cleanJson);
+      return {
+        type: 'chat',
+        category: 'chat',
+        message: parsed.message || replyText
+      };
+    } catch (err) {
+      return {
+        type: 'chat',
+        category: 'chat',
+        message: isEn 
+          ? `👋 **Hello Ivan!** How can I help you today with your Meals, Training, or Trading?`
+          : `👋 **Ciao Ivan!** Sono il tuo Assistente AI personale. Come posso aiutarti oggi su Nutrizione, Allenamento o Trading?`
+      };
+    }
+  }
+
   const langInstruction = isEn
     ? 'IMPORTANT: Respond strictly in ENGLISH for all text messages, headings, and explanations.'
     : 'IMPORTANTE: Rispondi rigorosamente in ITALIANO per tutti i messaggi di testo, intestazioni e spiegazioni.';
@@ -428,9 +484,19 @@ Richiesta dell'utente Ivan: "${userText}"`;
   };
 }
 
-function fallbackLocalParser(text, timestamp, lang = 'IT') {
+function fallbackLocalParser(text, timestamp, lang = 'IT', currentLogs = { food: [], training: [], trading: [] }) {
   const isEn = lang === 'EN';
   const category = detectIntentCategory(text);
+
+  if (category === 'chat') {
+    return {
+      type: 'chat',
+      category: 'chat',
+      message: isEn
+        ? `👋 **Hello Ivan!** I'm your AI Personal Assistant. How can I help you today with your Meals, Training, or Trading?`
+        : `👋 **Ciao Ivan!** Sono il tuo Assistente AI personale. Come posso aiutarti oggi su Nutrizione, Allenamento o Trading?`
+    };
+  }
 
   if (category === 'trading') {
     const ticker = extractTickerSymbol(text, null);
