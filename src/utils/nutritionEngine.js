@@ -14,7 +14,7 @@ const FOOD_DATABASE = [
   },
   {
     keywords: ['cannella', 'spezie', 'origano', 'basilico', 'pepe', 'sale', 'rosmarino', 'prezzemolo'],
-    cal: 2, p: 0.1, f: 0, c: 0.5, k: 10, mg: 2, ca: 10, fe: 0.1, zn: 0, vitA: 0, vitC: 0, vitD: 0
+    cal: 2, p: 0.1, f: 0, c: 0.5, k: 10, mg: 2, ca: 10, fe: 0.1, zn: 0, vitA: 5, vitC: 2.5, vitD: 0
   },
 
   // ═══════════════════════════════════════════════════
@@ -32,9 +32,81 @@ const FOOD_DATABASE = [
     keywords: ['latte di mandorla', 'latte di mandorle'],
     cal: 24, p: 0.6, f: 1.1, c: 3.0, k: 67, mg: 7, ca: 120, fe: 0.3, zn: 0.2, vitA: 37, vitC: 0, vitD: 1.0
   },
+  {
+    keywords: ['latte di mucca', 'latte intero', 'latte parzialmente scremato', 'latte scremato', 'latte'],
+    cal: 46, p: 3.4, f: 1.6, c: 4.8, k: 150, mg: 11, ca: 120, fe: 0.1, zn: 0.4, vitA: 46, vitC: 1.0, vitD: 1.2
+  },
 
   // ═══════════════════════════════════════════════════
-  // BURRI & CREME DI FRUTTA A GUSCIO (100% NATURALE)
+  // FRUTTA FRESCA & AGRUMI (RICCHI DI VITAMINA C & MICROS)
+  // ═══════════════════════════════════════════════════
+  {
+    keywords: ['arancia', 'arance', 'agrumi', 'succo d\'arancia', 'succo arancia', 'spremuta'],
+    cal: 47, p: 0.9, f: 0.1, c: 11.8, k: 181, mg: 10, ca: 40, fe: 0.1, zn: 0.1, vitA: 11, vitC: 53.2, vitD: 0
+  },
+  {
+    keywords: ['limone', 'limoni', 'succo di limone', 'succo limone'],
+    cal: 29, p: 1.1, f: 0.3, c: 9.3, k: 138, mg: 8, ca: 26, fe: 0.6, zn: 0.1, vitA: 1, vitC: 53.0, vitD: 0
+  },
+  {
+    keywords: ['kiwi'],
+    cal: 61, p: 1.1, f: 0.5, c: 14.7, k: 312, mg: 17, ca: 34, fe: 0.3, zn: 0.1, vitA: 4, vitC: 92.7, vitD: 0
+  },
+  {
+    keywords: ['fragole', 'fragola', 'frutti di bosco', 'mirtilli', 'lamponi', 'fregate'],
+    cal: 32, p: 0.7, f: 0.3, c: 7.7, k: 153, mg: 13, ca: 16, fe: 0.4, zn: 0.1, vitA: 1, vitC: 58.8, vitD: 0
+  },
+  {
+    keywords: ['mela', 'mele'],
+    cal: 52, p: 0.3, f: 0.2, c: 13.8, k: 107, mg: 5, ca: 6, fe: 0.1, zn: 0.0, vitA: 3, vitC: 4.6, vitD: 0
+  },
+  {
+    keywords: ['banana', 'banane'],
+    cal: 89, p: 1.1, f: 0.3, c: 22.8, k: 358, mg: 27, ca: 5, fe: 0.3, zn: 0.2, vitA: 3, vitC: 8.7, vitD: 0
+  },
+  {
+    keywords: ['avocado'],
+    cal: 160, p: 2.0, f: 14.7, c: 8.5, k: 485, mg: 29, ca: 12, fe: 0.6, zn: 0.6, vitA: 7, vitC: 10.0, vitD: 0
+  },
+
+  // ═══════════════════════════════════════════════════
+  // VERDURE & ORTAGGI (RICCHI DI VITAMINA C, A, FERRO, POTASSIO)
+  // ═══════════════════════════════════════════════════
+  {
+    keywords: ['peperoni', 'peperone', 'peperoncino'],
+    cal: 26, p: 1.0, f: 0.3, c: 6.0, k: 211, mg: 12, ca: 10, fe: 0.4, zn: 0.2, vitA: 157, vitC: 127.7, vitD: 0
+  },
+  {
+    keywords: ['broccoli', 'broccolo', 'cavolfiore', 'cavolo vapore', 'cavolo'],
+    cal: 34, p: 2.8, f: 0.4, c: 6.6, k: 316, mg: 21, ca: 47, fe: 0.7, zn: 0.4, vitA: 31, vitC: 89.2, vitD: 0
+  },
+  {
+    keywords: ['spinaci', 'spinace', 'bietole'],
+    cal: 23, p: 2.9, f: 0.4, c: 3.6, k: 558, mg: 79, ca: 99, fe: 2.7, zn: 0.5, vitA: 469, vitC: 28.1, vitD: 0
+  },
+  {
+    keywords: ['insalata mista', 'insalata', 'lattuga', 'rucola', 'radicchio', 'valeriana'],
+    cal: 15, p: 1.4, f: 0.2, c: 2.9, k: 194, mg: 13, ca: 36, fe: 0.9, zn: 0.2, vitA: 370, vitC: 18.0, vitD: 0
+  },
+  {
+    keywords: ['zucchine', 'zucchina'],
+    cal: 17, p: 1.2, f: 0.3, c: 3.1, k: 261, mg: 18, ca: 16, fe: 0.4, zn: 0.3, vitA: 10, vitC: 17.9, vitD: 0
+  },
+  {
+    keywords: ['patate lesse', 'patata lesse', 'patate', 'patata', 'patata dolce'],
+    cal: 77, p: 2.0, f: 0.1, c: 17.5, k: 421, mg: 23, ca: 12, fe: 0.8, zn: 0.3, vitA: 1, vitC: 19.7, vitD: 0
+  },
+  {
+    keywords: ['carote', 'carota'],
+    cal: 41, p: 0.9, f: 0.2, c: 9.6, k: 320, mg: 12, ca: 33, fe: 0.3, zn: 0.2, vitA: 835, vitC: 5.9, vitD: 0
+  },
+  {
+    keywords: ['passata di pomodoro', 'passata', 'sugo di pomodoro', 'pomodoro', 'pomodorini', 'pelati', 'salsa'],
+    cal: 18, p: 1.0, f: 0.2, c: 3.5, k: 290, mg: 12, ca: 18, fe: 0.5, zn: 0.2, vitA: 42, vitC: 14.0, vitD: 0
+  },
+
+  // ═══════════════════════════════════════════════════
+  // BURRI & CREME DI FRUTTA A GUSCIO
   // ═══════════════════════════════════════════════════
   {
     keywords: ['burro di 100% mandorle pelate', 'burro di mandorle pelate', 'crema di mandorle pelate', 'burro di mandorla pelata', 'crema di mandorla pelata'],
@@ -66,27 +138,15 @@ const FOOD_DATABASE = [
   },
   {
     keywords: ['yogurt greco 0%', 'yogurt greco magro', 'skyr'],
-    cal: 59, p: 10.0, f: 0.4, c: 3.6, k: 141, mg: 11, ca: 110, fe: 0.1, zn: 0.5, vitA: 5, vitC: 0, vitD: 0.1
+    cal: 59, p: 10.0, f: 0.4, c: 3.6, k: 141, mg: 11, ca: 110, fe: 0.1, zn: 0.5, vitA: 5, vitC: 0.8, vitD: 0.1
   },
   {
     keywords: ['yogurt greco', 'yogurt proteico'],
-    cal: 97, p: 9.0, f: 5.0, c: 4.0, k: 141, mg: 11, ca: 110, fe: 0.1, zn: 0.5, vitA: 26, vitC: 0, vitD: 0.1
+    cal: 97, p: 9.0, f: 5.0, c: 4.0, k: 141, mg: 11, ca: 110, fe: 0.1, zn: 0.5, vitA: 26, vitC: 0.8, vitD: 0.1
   },
   {
     keywords: ['uovo', 'uova', 'uova intere'],
     cal: 155, p: 13.0, f: 11.0, c: 1.1, k: 138, mg: 12, ca: 56, fe: 1.8, zn: 1.3, vitA: 160, vitC: 0, vitD: 2.2
-  },
-
-  // ═══════════════════════════════════════════════════
-  // SALSE & POMODORO
-  // ═══════════════════════════════════════════════════
-  {
-    keywords: ['passata di pomodoro', 'passata', 'sugo di pomodoro', 'pomodoro', 'pomodorini', 'pelati', 'salsa'],
-    cal: 18, p: 1.0, f: 0.2, c: 3.5, k: 290, mg: 12, ca: 18, fe: 0.5, zn: 0.2, vitA: 42, vitC: 14, vitD: 0
-  },
-  {
-    keywords: ['pesto', 'pesto genovese'],
-    cal: 387, p: 5.0, f: 38.0, c: 6.0, k: 230, mg: 55, ca: 200, fe: 2.0, zn: 1.5, vitA: 120, vitC: 3, vitD: 0
   },
 
   // ═══════════════════════════════════════════════════
@@ -110,7 +170,7 @@ const FOOD_DATABASE = [
   // ═══════════════════════════════════════════════════
   {
     keywords: ['petto di pollo', 'fesa di pollo', 'pollo ai ferri', 'pollo'],
-    cal: 110, p: 23.0, f: 1.3, c: 0.0, k: 340, mg: 28, ca: 14, fe: 0.4, zn: 0.8, vitA: 6, vitC: 0, vitD: 0.1
+    cal: 110, p: 23.0, f: 1.3, c: 0.0, k: 340, mg: 28, ca: 14, fe: 0.4, zn: 0.8, vitA: 6, vitC: 1.2, vitD: 0.1
   },
   {
     keywords: ['salmone', 'salmon'],
@@ -169,21 +229,23 @@ function parseQuantityGrams(text) {
     return (num ? parseInt(num[1], 10) : 1) * 15;
   }
 
-  // Unit count: "1 kiwi", "1 caffe", "2 uova"
-  const unitMatch = lower.match(/(\d+)\s*(kiwi|caffe|espresso|uovo|uova|mela|banana)/i);
+  // Unit count: "1 kiwi", "1 caffe", "2 uova", "1 arancia"
+  const unitMatch = lower.match(/(\d+)\s*(kiwi|caffe|espresso|uovo|uova|mela|banana|arancia|limone)/i);
   if (unitMatch) {
     const count = parseInt(unitMatch[1], 10);
     const unitName = unitMatch[2].toLowerCase();
     if (unitName.includes('kiwi')) return count * 70;
     if (unitName.includes('caffe') || unitName.includes('espresso')) return count * 30;
     if (unitName.includes('uov')) return count * 50;
+    if (unitName.includes('arancia')) return count * 130;
+    if (unitName.includes('limone')) return count * 60;
   }
 
   return 100;
 }
 
 const DEFAULT_PROFILE = {
-  cal: 15, p: 0.5, f: 0.2, c: 2.0, k: 20, mg: 3, ca: 5, fe: 0.1, zn: 0, vitA: 0, vitC: 0, vitD: 0
+  cal: 15, p: 0.5, f: 0.2, c: 2.0, k: 20, mg: 3, ca: 5, fe: 0.1, zn: 0, vitA: 5, vitC: 2, vitD: 0
 };
 
 export function parseScientificBreakdown(description, totalCal = 0, totalPro = 0, totalFat = 0, totalCarb = 0, totalMicros = {}) {
@@ -226,9 +288,6 @@ export function parseScientificBreakdown(description, totalCal = 0, totalPro = 0
   });
 
   const sumCal = itemProfiles.reduce((s, i) => s + i.cal, 0);
-  const sumPro = itemProfiles.reduce((s, i) => s + i.pro, 0);
-  const sumFat = itemProfiles.reduce((s, i) => s + i.fat, 0);
-  const sumCarb = itemProfiles.reduce((s, i) => s + i.carb, 0);
 
   // Use raw scientific sum directly unless totalCal is within 15% of sumCal
   const isInputRealistic = totalCal > 0 && Math.abs(totalCal - sumCal) / (sumCal || 1) < 0.15;
@@ -249,7 +308,7 @@ export function parseScientificBreakdown(description, totalCal = 0, totalPro = 0
       iron: Math.round(item.fe * 10) / 10,
       zinc: Math.round(item.zn * 10) / 10,
       vitaminA: Math.round(item.vitA),
-      vitaminC: Math.round(item.vitC),
+      vitaminC: Math.round(item.vitC * 10) / 10,
       vitaminD: Math.round(item.vitD * 10) / 10
     }
   }));
