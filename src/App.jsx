@@ -33,6 +33,19 @@ import {
   INITIAL_TRADING_LOGS 
 } from './constants/initialData';
 
+function sanitizeFoodLogMealType(log) {
+  if (!log) return log;
+  const desc = (log.description || '').toLowerCase();
+  let mealType = log.mealType;
+
+  if (desc.includes('pranzo')) mealType = 'Pranzo';
+  else if (desc.includes('cena')) mealType = 'Cena';
+  else if (desc.includes('colazione')) mealType = 'Colazione';
+  else if (desc.includes('spuntino') || desc.includes('merenda')) mealType = 'Spuntino';
+
+  return { ...log, mealType };
+}
+
 export default function App() {
   const [user, setUser] = useState(() => {
     const saved = localStorage.getItem('ivan_dashboard_user');
@@ -71,12 +84,15 @@ export default function App() {
     const saved = localStorage.getItem('ivan_food_logs');
     if (saved) {
       const logs = JSON.parse(saved);
-      return logs.map(item => ({
-        ...item,
-        ingredientsBreakdown: parseScientificBreakdown(item.description, item.calories, item.protein, item.fats, item.carbs, item.micros || {})
-      }));
+      return logs.map(item => {
+        const sanitized = sanitizeFoodLogMealType(item);
+        return {
+          ...sanitized,
+          ingredientsBreakdown: parseScientificBreakdown(sanitized.description, sanitized.calories, sanitized.protein, sanitized.fats, sanitized.carbs, sanitized.micros || {})
+        };
+      });
     }
-    return INITIAL_FOOD_LOGS;
+    return INITIAL_FOOD_LOGS.map(sanitizeFoodLogMealType);
   });
 
   const [trainingLogs, setTrainingLogs] = useState(() => {
@@ -105,7 +121,9 @@ export default function App() {
         if (!isMounted) return;
 
         if (cloudProfile) setProfile(cloudProfile);
-        if (cloudFood && cloudFood.length > 0) setFoodLogs(cloudFood);
+        if (cloudFood && cloudFood.length > 0) {
+          setFoodLogs(cloudFood.map(sanitizeFoodLogMealType));
+        }
         if (cloudTraining && cloudTraining.length > 0) setTrainingLogs(cloudTraining);
         if (cloudTrading && cloudTrading.length > 0) setTradingLogs(cloudTrading);
       } catch (err) {
@@ -173,15 +191,16 @@ export default function App() {
 
   const handleAddLog = (category, newLog) => {
     if (category === 'food') {
+      const sanitized = sanitizeFoodLogMealType(newLog);
       const scientificLog = {
-        ...newLog,
+        ...sanitized,
         ingredientsBreakdown: parseScientificBreakdown(
-          newLog.description,
-          newLog.calories,
-          newLog.protein,
-          newLog.fats,
-          newLog.carbs,
-          newLog.micros || {}
+          sanitized.description,
+          sanitized.calories,
+          sanitized.protein,
+          sanitized.fats,
+          sanitized.carbs,
+          sanitized.micros || {}
         )
       };
       setFoodLogs(prev => [scientificLog, ...prev]);
@@ -201,15 +220,16 @@ export default function App() {
   };
 
   const handleUpdateFoodLog = (updatedLog) => {
+    const sanitized = sanitizeFoodLogMealType(updatedLog);
     const scientificLog = {
-      ...updatedLog,
+      ...sanitized,
       ingredientsBreakdown: parseScientificBreakdown(
-        updatedLog.description,
-        updatedLog.calories,
-        updatedLog.protein,
-        updatedLog.fats,
-        updatedLog.carbs,
-        updatedLog.micros || {}
+        sanitized.description,
+        sanitized.calories,
+        sanitized.protein,
+        sanitized.fats,
+        sanitized.carbs,
+        sanitized.micros || {}
       )
     };
     setFoodLogs(prev => prev.map(item => item.id === scientificLog.id ? scientificLog : item));
