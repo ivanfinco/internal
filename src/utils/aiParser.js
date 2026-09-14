@@ -145,7 +145,7 @@ async function callGeminiFetch(prompt) {
     throw new Error("Gemini API Key missing in environment variables");
   }
 
-  const models = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+  const models = ['gemini-3.5-flash-lite', 'gemini-3.1-pro-preview', 'gemini-2.5-flash'];
   let lastErr = null;
 
   for (const model of models) {
