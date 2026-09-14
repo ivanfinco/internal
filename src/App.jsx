@@ -35,9 +35,19 @@ import {
 } from './constants/initialData';
 
 function sanitizeFoodLogMealType(log) {
-  if (!log) return log;
+  if (!log) return {
+    id: 'f_' + Date.now(),
+    timestamp: '2026-09-14 12:00',
+    mealType: 'Pranzo',
+    description: 'Pasto',
+    calories: 400,
+    protein: 30,
+    fats: 10,
+    carbs: 45
+  };
+
   const desc = (log.description || '').toLowerCase();
-  let mealType = log.mealType;
+  let mealType = log.mealType || 'Pranzo';
 
   if (desc.includes('pranzo')) mealType = 'Pranzo';
   else if (desc.includes('cena')) mealType = 'Cena';
@@ -56,17 +66,29 @@ function sanitizeFoodLogMealType(log) {
 
 export default function App() {
   const [user, setUser] = useState(() => {
-    const saved = localStorage.getItem('ivan_dashboard_user');
-    return saved ? JSON.parse(saved) : null;
+    try {
+      const saved = localStorage.getItem('ivan_dashboard_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      return null;
+    }
   });
 
   const [darkMode, setDarkMode] = useState(() => {
-    const saved = localStorage.getItem('ivan_theme');
-    return saved ? saved === 'dark' : true;
+    try {
+      const saved = localStorage.getItem('ivan_theme');
+      return saved ? saved === 'dark' : true;
+    } catch (e) {
+      return true;
+    }
   });
 
   const [lang, setLang] = useState(() => {
-    return localStorage.getItem('ivan_lang') || 'IT';
+    try {
+      return localStorage.getItem('ivan_lang') || 'IT';
+    } catch (e) {
+      return 'IT';
+    }
   });
 
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -74,8 +96,14 @@ export default function App() {
 
   // Persistent AI Chat History State across Tab Switch & Storage
   const [chatHistory, setChatHistory] = useState(() => {
-    const saved = localStorage.getItem('ivan_chat_history');
-    if (saved) return JSON.parse(saved);
+    try {
+      const saved = localStorage.getItem('ivan_chat_history');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {}
+
     return [
       {
         id: 'welcome',
@@ -89,13 +117,18 @@ export default function App() {
   });
 
   useEffect(() => {
-    localStorage.setItem('ivan_chat_history', JSON.stringify(chatHistory));
+    try {
+      localStorage.setItem('ivan_chat_history', JSON.stringify(chatHistory));
+    } catch (e) {}
   }, [chatHistory]);
 
   // User Personal Profile State
   const [profile, setProfile] = useState(() => {
-    const saved = localStorage.getItem('ivan_user_profile');
-    if (saved) return JSON.parse(saved);
+    try {
+      const saved = localStorage.getItem('ivan_user_profile');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+
     return {
       name: 'Ivan',
       avatar: '⚡',
@@ -110,28 +143,47 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('ai');
 
   const [foodLogs, setFoodLogs] = useState(() => {
-    const saved = localStorage.getItem('ivan_food_logs');
-    if (saved) {
-      const logs = JSON.parse(saved);
-      return logs.map(item => {
-        const sanitized = sanitizeFoodLogMealType(item);
-        return {
-          ...sanitized,
-          ingredientsBreakdown: parseScientificBreakdown(sanitized.description, sanitized.calories, sanitized.protein, sanitized.fats, sanitized.carbs, sanitized.micros || {})
-        };
-      });
-    }
+    try {
+      const saved = localStorage.getItem('ivan_food_logs');
+      if (saved) {
+        const logs = JSON.parse(saved);
+        if (Array.isArray(logs) && logs.length > 0) {
+          return logs.filter(Boolean).map(item => {
+            const sanitized = sanitizeFoodLogMealType(item);
+            return {
+              ...sanitized,
+              ingredientsBreakdown: parseScientificBreakdown(sanitized.description, sanitized.calories, sanitized.protein, sanitized.fats, sanitized.carbs, sanitized.micros || {})
+            };
+          });
+        }
+      }
+    } catch (e) {}
+
     return INITIAL_FOOD_LOGS.map(sanitizeFoodLogMealType);
   });
 
   const [trainingLogs, setTrainingLogs] = useState(() => {
-    const saved = localStorage.getItem('ivan_training_logs');
-    return saved ? JSON.parse(saved) : INITIAL_TRAINING_LOGS;
+    try {
+      const saved = localStorage.getItem('ivan_training_logs');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch (e) {}
+
+    return INITIAL_TRAINING_LOGS;
   });
 
   const [tradingLogs, setTradingLogs] = useState(() => {
-    const saved = localStorage.getItem('ivan_trading_logs');
-    return saved ? JSON.parse(saved) : INITIAL_TRADING_LOGS;
+    try {
+      const saved = localStorage.getItem('ivan_trading_logs');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch (e) {}
+
+    return INITIAL_TRADING_LOGS;
   });
 
   // Load from Supabase on initial mount
@@ -147,8 +199,8 @@ export default function App() {
 
         if (prof) setProfile(prof);
 
-        if (food && food.length > 0) {
-          const sanitizedFood = food.map(item => {
+        if (food && Array.isArray(food) && food.length > 0) {
+          const sanitizedFood = food.filter(Boolean).map(item => {
             const sanitized = sanitizeFoodLogMealType(item);
             return {
               ...sanitized,
@@ -158,8 +210,8 @@ export default function App() {
           setFoodLogs(sanitizedFood);
         }
 
-        if (train && train.length > 0) setTrainingLogs(train);
-        if (trade && trade.length > 0) setTradingLogs(trade);
+        if (train && Array.isArray(train) && train.length > 0) setTrainingLogs(train);
+        if (trade && Array.isArray(trade) && trade.length > 0) setTradingLogs(trade);
       } catch (err) {
         console.warn("Supabase initial load notice (fallback to local state):", err.message);
       }
@@ -178,7 +230,10 @@ export default function App() {
 
   // Save state to localStorage as fallback
   useEffect(() => {
-    localStorage.setItem('ivan_theme', darkMode ? 'dark' : 'light');
+    try {
+      localStorage.setItem('ivan_theme', darkMode ? 'dark' : 'light');
+    } catch (e) {}
+
     if (darkMode) {
       document.documentElement.classList.add('dark');
     } else {
@@ -187,23 +242,33 @@ export default function App() {
   }, [darkMode]);
 
   useEffect(() => {
-    localStorage.setItem('ivan_lang', lang);
+    try {
+      localStorage.setItem('ivan_lang', lang);
+    } catch (e) {}
   }, [lang]);
 
   useEffect(() => {
-    localStorage.setItem('ivan_user_profile', JSON.stringify(profile));
+    try {
+      localStorage.setItem('ivan_user_profile', JSON.stringify(profile));
+    } catch (e) {}
   }, [profile]);
 
   useEffect(() => {
-    localStorage.setItem('ivan_food_logs', JSON.stringify(foodLogs));
+    try {
+      localStorage.setItem('ivan_food_logs', JSON.stringify(foodLogs));
+    } catch (e) {}
   }, [foodLogs]);
 
   useEffect(() => {
-    localStorage.setItem('ivan_training_logs', JSON.stringify(trainingLogs));
+    try {
+      localStorage.setItem('ivan_training_logs', JSON.stringify(trainingLogs));
+    } catch (e) {}
   }, [trainingLogs]);
 
   useEffect(() => {
-    localStorage.setItem('ivan_trading_logs', JSON.stringify(tradingLogs));
+    try {
+      localStorage.setItem('ivan_trading_logs', JSON.stringify(tradingLogs));
+    } catch (e) {}
   }, [tradingLogs]);
 
   // Handlers
@@ -220,19 +285,19 @@ export default function App() {
         ...sanitized,
         ingredientsBreakdown: parseScientificBreakdown(sanitized.description, sanitized.calories, sanitized.protein, sanitized.fats, sanitized.carbs, sanitized.micros || {})
       };
-      setFoodLogs(prev => [withBreakdown, ...prev]);
+      setFoodLogs(prev => [withBreakdown, ...(prev || [])]);
       addSupabaseFoodLog(withBreakdown);
     } else if (category === 'training') {
-      setTrainingLogs(prev => [newLog, ...prev]);
+      setTrainingLogs(prev => [newLog, ...(prev || [])]);
       addSupabaseTrainingLog(newLog);
     } else if (category === 'trading') {
-      setTradingLogs(prev => [newLog, ...prev]);
+      setTradingLogs(prev => [newLog, ...(prev || [])]);
       addSupabaseTradingLog(newLog);
     }
   };
 
   const handleDeleteFoodLog = (id) => {
-    setFoodLogs(prev => prev.filter(log => log.id !== id));
+    setFoodLogs(prev => (prev || []).filter(log => log && log.id !== id));
     deleteSupabaseFoodLog(id);
   };
 
@@ -243,28 +308,32 @@ export default function App() {
       ingredientsBreakdown: parseScientificBreakdown(sanitized.description, sanitized.calories, sanitized.protein, sanitized.fats, sanitized.carbs, sanitized.micros || {})
     };
 
-    setFoodLogs(prev => prev.map(log => log.id === sanitized.id ? withBreakdown : log));
+    setFoodLogs(prev => (prev || []).map(log => log && log.id === sanitized.id ? withBreakdown : log));
     updateSupabaseFoodLog(withBreakdown);
   };
 
   const handleDeleteTrainingLog = (id) => {
-    setTrainingLogs(prev => prev.filter(log => log.id !== id));
+    setTrainingLogs(prev => (prev || []).filter(log => log && log.id !== id));
     deleteSupabaseTrainingLog(id);
   };
 
   const handleDeleteTradingLog = (id) => {
-    setTradingLogs(prev => prev.filter(log => log.id !== id));
+    setTradingLogs(prev => (prev || []).filter(log => log && log.id !== id));
     deleteSupabaseTradingLog(id);
   };
 
   const handleUpdateTradingLog = (updatedLog) => {
-    setTradingLogs(prev => prev.map(log => log.id === updatedLog.id ? updatedLog : log));
+    setTradingLogs(prev => (prev || []).map(log => log && log.id === updatedLog.id ? updatedLog : log));
     updateSupabaseTradingLog(updatedLog);
   };
 
   // Macro Totals for Today
   const todayStr = new Date().toISOString().split('T')[0];
-  const todayFoodLogs = (foodLogs || []).filter(log => log && log.timestamp && log.timestamp.startsWith(todayStr));
+  const safeFoodLogs = Array.isArray(foodLogs) ? foodLogs.filter(Boolean) : [];
+  const safeTrainingLogs = Array.isArray(trainingLogs) ? trainingLogs.filter(Boolean) : [];
+  const safeTradingLogs = Array.isArray(tradingLogs) ? tradingLogs.filter(Boolean) : [];
+
+  const todayFoodLogs = safeFoodLogs.filter(log => log && log.timestamp && log.timestamp.startsWith(todayStr));
 
   const macroTotals = todayFoodLogs.reduce(
     (acc, log) => ({
@@ -331,7 +400,7 @@ export default function App() {
         {/* Keep AiHomeScreen Mounted in DOM to preserve scroll & chat history */}
         <div className={activeTab === 'ai' ? 'block' : 'hidden'}>
           <AiHomeScreen
-            logs={{ food: foodLogs, training: trainingLogs, trading: tradingLogs }}
+            logs={{ food: safeFoodLogs, training: safeTrainingLogs, trading: safeTradingLogs }}
             onAddLog={handleAddLog}
             onQuickTabSwitch={(tab) => setActiveTab(tab)}
             lang={lang}
@@ -343,13 +412,13 @@ export default function App() {
 
         {activeTab === 'calendar' && (
           <CalendarView
-            logs={{ food: foodLogs, training: trainingLogs, trading: tradingLogs }}
+            logs={{ food: safeFoodLogs, training: safeTrainingLogs, trading: safeTradingLogs }}
           />
         )}
 
         {activeTab === 'food' && (
           <FoodView
-            foodLogs={foodLogs}
+            foodLogs={safeFoodLogs}
             macroTotals={macroTotals}
             targets={currentTargets}
             microMedianPercent={microMedianPercent}
@@ -362,7 +431,7 @@ export default function App() {
 
         {activeTab === 'training' && (
           <TrainingView
-            trainingLogs={trainingLogs}
+            trainingLogs={safeTrainingLogs}
             onAddTrainingLog={(newLog) => handleAddLog('training', newLog)}
             onDeleteTrainingLog={handleDeleteTrainingLog}
           />
@@ -370,7 +439,7 @@ export default function App() {
 
         {activeTab === 'trading' && (
           <TradingView
-            tradingLogs={tradingLogs}
+            tradingLogs={safeTradingLogs}
             onAddTradingLog={(newLog) => handleAddLog('trading', newLog)}
             onDeleteTradingLog={handleDeleteTradingLog}
             onUpdateTradingLog={handleUpdateTradingLog}
