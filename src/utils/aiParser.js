@@ -2,7 +2,7 @@ import { parseScientificBreakdown } from './nutritionEngine.js';
 
 /**
  * Assistant AI Powered Parser for Ivan's Personal Dashboard
- * Supports Multilingual Response Generation, Ingredient Provenance Breakdown, & Natural Language Edits
+ * Supports Multilingual Response Generation (English & Italian), Ingredient Provenance Breakdown, & Natural Language Edits
  */
 
 const getGeminiApiKey = () => {
@@ -20,6 +20,12 @@ const getGeminiApiKey = () => {
   return k1 + k2;
 };
 
+function isEnglishText(text) {
+  const lower = (text || '').toLowerCase();
+  const enKeywords = ['hello', 'hi', 'hey', 'good morning', 'good evening', 'ate', 'had', 'chicken', 'rice', 'workout', 'bought', 'sold', 'what', 'how', 'how many', 'show', 'tell', 'can you', 'protein', 'calories'];
+  return enKeywords.some(kw => lower.includes(kw));
+}
+
 function calculateTradeOutcome(text, tradeObj) {
   const lower = (text || '').toLowerCase();
   const type = (tradeObj.type || 'BUY').toUpperCase();
@@ -30,8 +36,8 @@ function calculateTradeOutcome(text, tradeObj) {
   let status = tradeObj.status || 'APERTO';
   let pnl = tradeObj.pnl || '0.0%';
 
-  const isFullTp = lower.includes('full tp') || lower.includes('tp preso') || lower.includes('target preso') || lower.includes('preso tp') || lower.includes('hit tp') || lower.includes('in tp') || lower.includes('chiuso in profitto') || lower.includes('target');
-  const isSl = lower.includes('sl') || lower.includes('stop loss') || lower.includes('preso sl') || lower.includes('stoppato') || lower.includes('hit sl') || lower.includes('in sl') || lower.includes('chiuso in perdita');
+  const isFullTp = lower.includes('full tp') || lower.includes('tp preso') || lower.includes('target preso') || lower.includes('preso tp') || lower.includes('hit tp') || lower.includes('in tp') || lower.includes('chiuso in profitto') || lower.includes('target') || lower.includes('tp hit') || lower.includes('closed in profit');
+  const isSl = lower.includes('sl') || lower.includes('stop loss') || lower.includes('preso sl') || lower.includes('stoppato') || lower.includes('hit sl') || lower.includes('in sl') || lower.includes('chiuso in perdita') || lower.includes('sl hit') || lower.includes('stopped out');
 
   if (isFullTp) {
     status = 'CHIUSO';
@@ -92,7 +98,7 @@ function extractTickerSymbol(text, rawTicker) {
   const genericMatch = cleanText.match(/\b([a-z0-9!]{2,6})\b/i);
   if (genericMatch) {
     const sym = genericMatch[1].toUpperCase();
-    if (!['BUY', 'SELL', 'LONG', 'SHORT', 'TAKE', 'PROFIT', 'STOP', 'LOSS', 'ENTRY', 'TRADE', 'TRADING', 'PERCHÈ', 'PERCHE', 'SEMPRE', 'FULL'].includes(sym)) {
+    if (!['BUY', 'SELL', 'LONG', 'SHORT', 'TAKE', 'PROFIT', 'STOP', 'LOSS', 'ENTRY', 'TRADE', 'TRADING', 'PERCHÈ', 'PERCHE', 'SEMPRE', 'FULL', 'WHAT', 'SHOW', 'HAVE'].includes(sym)) {
       return sym;
     }
   }
@@ -103,19 +109,21 @@ function extractTickerSymbol(text, rawTicker) {
 function detectIntentCategory(text) {
   const lower = (text || '').toLowerCase().trim();
 
-  // 1. Greetings & General Conversational Questions (DO NOT LOG AS MEAL OR TRADE!)
-  const isGreeting = /^(ciao|hello|hey|hei|buongiorno|buonasera|salve|hola|hi)\b/i.test(lower);
-  const isQuestion = /^(quante|quanto|quanti|quante|mostrami|quali|come|cosa|perché|perche|chi|can|what|how|show|tell)\b/i.test(lower);
+  // 1. Multilingual Greetings & General Questions (DO NOT LOG AS MEAL OR TRADE!)
+  const isGreeting = /^(ciao|hello|hey|hei|buongiorno|buonasera|salve|hola|hi|good morning|good evening|howdy|yo)\b/i.test(lower);
+  const isQuestion = /^(quante|quanto|quanti|quante|mostrami|quali|come|cosa|perché|perche|chi|can|what|how|show|tell|where|when|which|is there)\b/i.test(lower);
   
-  if (isGreeting || isQuestion || lower === 'ciao' || lower === 'hello' || lower === 'help') {
+  if (isGreeting || isQuestion || lower === 'ciao' || lower === 'hello' || lower === 'hi' || lower === 'help') {
     return 'chat';
   }
 
-  // 2. Trading Intent
+  // 2. Multilingual Trading Intent
   if (
     lower.startsWith('trading') || 
     lower.includes('buy ') || 
     lower.includes('sell ') || 
+    lower.includes('bought ') || 
+    lower.includes('sold ') || 
     lower.includes('long ') || 
     lower.includes('short ') || 
     lower.includes('nq') ||
@@ -136,22 +144,25 @@ function detectIntentCategory(text) {
     return 'trading';
   }
 
-  // 3. Training Intent
+  // 3. Multilingual Training Intent
   if (
     lower.startsWith('training') || 
     lower.startsWith('allenamento') || 
+    lower.includes('workout') || 
+    lower.includes('bench press') || 
     lower.includes('squat') || 
+    lower.includes('deadlift') || 
     lower.includes('panca') || 
     lower.includes('stacco') || 
-    lower.includes('workout') || 
-    lower.includes('serie') || 
-    lower.includes('reps')
+    lower.includes('sets') || 
+    lower.includes('reps') || 
+    lower.includes('serie')
   ) {
     return 'training';
   }
 
-  // 4. Food Intent (Must contain food/nutrition keywords)
-  const isFood = lower.startsWith('food') || lower.includes('mangiato') || lower.includes('pranzo') || lower.includes('cena') || lower.includes('colazione') || lower.includes('spuntino') || lower.includes('pollo') || lower.includes('riso') || lower.includes('pasta') || lower.includes('uova') || lower.includes('yogurt') || lower.includes('latte') || lower.includes('pane') || lower.includes('mela') || lower.includes('banana') || lower.includes('insalata') || lower.includes('olio') || lower.includes('burro') || lower.includes('0%') || lower.includes('kcal') || lower.includes('grammi') || /\d+g\b/.test(lower);
+  // 4. Multilingual Food Intent (Must contain food/nutrition keywords)
+  const isFood = lower.startsWith('food') || lower.includes('ate ') || lower.includes('had ') || lower.includes('eating') || lower.includes('mangiato') || lower.includes('pranzo') || lower.includes('cena') || lower.includes('colazione') || lower.includes('spuntino') || lower.includes('breakfast') || lower.includes('lunch') || lower.includes('dinner') || lower.includes('snack') || lower.includes('chicken') || lower.includes('rice') || lower.includes('pasta') || lower.includes('eggs') || lower.includes('oats') || lower.includes('yogurt') || lower.includes('milk') || lower.includes('bread') || lower.includes('apple') || lower.includes('banana') || lower.includes('salad') || lower.includes('oil') || lower.includes('butter') || lower.includes('pollo') || lower.includes('riso') || lower.includes('uova') || lower.includes('latte') || lower.includes('pane') || lower.includes('kcal') || lower.includes('grammi') || lower.includes('grams') || /\d+g\b/.test(lower);
 
   if (isFood) {
     return 'food';
@@ -164,10 +175,10 @@ function detectIntentCategory(text) {
 function detectMealType(text, timestamp) {
   const lower = (text || '').toLowerCase();
 
-  if (lower.includes('pranzo')) return 'Pranzo';
-  if (lower.includes('cena')) return 'Cena';
-  if (lower.includes('colazione')) return 'Colazione';
-  if (lower.includes('spuntino') || lower.includes('merenda')) return 'Spuntino';
+  if (lower.includes('pranzo') || lower.includes('lunch')) return 'Pranzo';
+  if (lower.includes('cena') || lower.includes('dinner')) return 'Cena';
+  if (lower.includes('colazione') || lower.includes('breakfast')) return 'Colazione';
+  if (lower.includes('spuntino') || lower.includes('merenda') || lower.includes('snack')) return 'Spuntino';
 
   let hour = new Date().getHours();
   if (timestamp && timestamp.includes(':')) {
@@ -255,7 +266,7 @@ ${JSON.stringify(currentTrade, null, 2)}
 Istruzione di modifica dell'utente: "${instruction}"
 
 Analizza l'istruzione e restituisci UNICAMENTE un oggetto JSON valido contenente i dati aggiornati del Trade.
-Se l'utente dice "ha preso full tp" o "stoppato in sl", calcola in modo matamatico preciso la percentuale di profitto (+%) o perdita (-%), imposta status: "CHIUSO" e restituisci il pnl esatto.
+Se l'utente dice "ha preso full tp", "full tp hit", "stoppato in sl" o "hit sl", calcola in modo matematico preciso la percentuale di profitto (+%) o perdita (-%), imposta status: "CHIUSO" e restituisci il pnl esatto.
 
 Esempio:
 {
@@ -343,7 +354,7 @@ Rispondi ESCLUSIVAMENTE con il JSON valido (senza markdown o altro testo).`;
 }
 
 async function callGeminiApi(userText, currentLogs, timestamp, lang = 'IT') {
-  const isEn = lang === 'EN';
+  const isEn = lang === 'EN' || isEnglishText(userText);
   const explicitCategory = detectIntentCategory(userText);
 
   if (explicitCategory === 'chat') {
@@ -355,13 +366,13 @@ Stato attuale dell'utente Ivan:
 - Allenamenti: ${currentLogs.training?.length || 0}
 - Posizioni Trading: ${currentLogs.trading?.length || 0}
 
-Rispondi in modo cordiale, sintetico ed utile in ${isEn ? 'INGLESE' : 'ITALIANO'}. NON registrare nessun log se si tratta di un saluto o di una domanda generale.
+Rispondi in modo cordiale, sintetico ed utile in ${isEn ? 'ENGLISH' : 'ITALIANO'}. NON registrare nessun log se si tratta di un saluto o di una domanda generale.
 
 Schema JSON:
 {
   "type": "chat",
   "category": "chat",
-  "message": "👋 Ciao Ivan! Come posso aiutarti oggi?"
+  "message": "${isEn ? "👋 Hello Ivan! How can I assist you today?" : "👋 Ciao Ivan! Come posso aiutarti oggi?"}"
 }`;
 
     try {
@@ -378,7 +389,7 @@ Schema JSON:
         type: 'chat',
         category: 'chat',
         message: isEn 
-          ? `👋 **Hello Ivan!** How can I help you today with your Meals, Training, or Trading?`
+          ? `👋 **Hello Ivan!** I'm your AI Personal Assistant. How can I help you today with your Meals, Training, or Trading?`
           : `👋 **Ciao Ivan!** Sono il tuo Assistente AI personale. Come posso aiutarti oggi su Nutrizione, Allenamento o Trading?`
       };
     }
@@ -490,7 +501,7 @@ Richiesta dell'utente Ivan: "${userText}"`;
 }
 
 function fallbackLocalParser(text, timestamp, lang = 'IT', currentLogs = { food: [], training: [], trading: [] }) {
-  const isEn = lang === 'EN';
+  const isEn = lang === 'EN' || isEnglishText(text);
   const category = detectIntentCategory(text);
 
   if (category === 'chat') {
