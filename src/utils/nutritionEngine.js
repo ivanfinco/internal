@@ -50,28 +50,20 @@ const FOOD_DATABASE = [
   },
 
   // ═══════════════════════════════════════════════════
-  // FRUTTA FRESCA & FRUTTI DI BOSCO
+  // FORMAGGI & LATTICINI
   // ═══════════════════════════════════════════════════
   {
-    keywords: ['kiwi gold', 'kiwi'],
-    cal: 61, p: 1.1, f: 0.5, c: 15.0, k: 312, mg: 17, ca: 34, fe: 0.3, zn: 0.1, vitA: 4, vitC: 93, vitD: 0
+    keywords: ['grana grattugiato', 'grana padano', 'grana', 'parmigiano reggiano', 'parmigiano', 'pecorino'],
+    cal: 392, p: 33.0, f: 28.4, c: 0.0, k: 100, mg: 44, ca: 1160, fe: 0.7, zn: 4.0, vitA: 268, vitC: 0, vitD: 0.5
   },
   {
-    keywords: ['frutti di bosco', 'mirtilli', 'lamponi', 'fragole', 'fragola'],
-    cal: 32, p: 0.7, f: 0.3, c: 8.0, k: 153, mg: 13, ca: 16, fe: 0.4, zn: 0.1, vitA: 1, vitC: 59, vitD: 0
+    keywords: ['mozzarella', 'fiordilatte', 'burrata'],
+    cal: 280, p: 22.0, f: 20.0, c: 2.2, k: 76, mg: 20, ca: 505, fe: 0.4, zn: 2.8, vitA: 179, vitC: 0, vitD: 0.4
   },
   {
-    keywords: ['banana', 'banane'],
-    cal: 89, p: 1.1, f: 0.3, c: 23.0, k: 358, mg: 27, ca: 5, fe: 0.3, zn: 0.2, vitA: 3, vitC: 9, vitD: 0
+    keywords: ['ricotta'],
+    cal: 174, p: 11.0, f: 13.0, c: 3.0, k: 105, mg: 11, ca: 207, fe: 0.4, zn: 1.2, vitA: 120, vitC: 0, vitD: 0.3
   },
-  {
-    keywords: ['mela', 'mele'],
-    cal: 52, p: 0.3, f: 0.2, c: 14.0, k: 107, mg: 5, ca: 6, fe: 0.1, zn: 0, vitA: 3, vitC: 5, vitD: 0
-  },
-
-  // ═══════════════════════════════════════════════════
-  // LATTICINI & YOGURT
-  // ═══════════════════════════════════════════════════
   {
     keywords: ['yogurt greco 0%', 'yogurt greco magro', 'skyr'],
     cal: 59, p: 10.0, f: 0.4, c: 3.6, k: 141, mg: 11, ca: 110, fe: 0.1, zn: 0.5, vitA: 5, vitC: 0, vitD: 0.1
@@ -84,21 +76,33 @@ const FOOD_DATABASE = [
     keywords: ['uovo', 'uova', 'uova intere'],
     cal: 155, p: 13.0, f: 11.0, c: 1.1, k: 138, mg: 12, ca: 56, fe: 1.8, zn: 1.3, vitA: 160, vitC: 0, vitD: 2.2
   },
+
+  // ═══════════════════════════════════════════════════
+  // SALSE & POMODORO
+  // ═══════════════════════════════════════════════════
   {
-    keywords: ['albume', 'albumi'],
-    cal: 52, p: 11.0, f: 0.2, c: 0.7, k: 163, mg: 11, ca: 7, fe: 0.1, zn: 0.0, vitA: 0, vitC: 0, vitD: 0
+    keywords: ['passata di pomodoro', 'passata', 'sugo di pomodoro', 'pomodoro', 'pomodorini', 'pelati', 'salsa'],
+    cal: 18, p: 1.0, f: 0.2, c: 3.5, k: 290, mg: 12, ca: 18, fe: 0.5, zn: 0.2, vitA: 42, vitC: 14, vitD: 0
+  },
+  {
+    keywords: ['pesto', 'pesto genovese'],
+    cal: 387, p: 5.0, f: 38.0, c: 6.0, k: 230, mg: 55, ca: 200, fe: 2.0, zn: 1.5, vitA: 120, vitC: 3, vitD: 0
   },
 
   // ═══════════════════════════════════════════════════
   // CEREALI, PASTA, RISO, PANE
   // ═══════════════════════════════════════════════════
   {
-    keywords: ['pasta', 'spaghetti', 'penne', 'rigatoni', 'fusilli', 'linguine', 'maccheroni'],
+    keywords: ['pasta', 'spaghetti', 'penne', 'rigatoni', 'fusilli', 'linguine', 'maccheroni', 'bucatini'],
     cal: 353, p: 12.5, f: 1.5, c: 72.0, k: 223, mg: 53, ca: 22, fe: 1.4, zn: 1.5, vitA: 0, vitC: 0, vitD: 0
   },
   {
     keywords: ['riso basmati', 'basmati'],
     cal: 350, p: 7.5, f: 0.6, c: 78.0, k: 115, mg: 25, ca: 10, fe: 0.8, zn: 1.1, vitA: 0, vitC: 0, vitD: 0
+  },
+  {
+    keywords: ['pane', 'panino', 'ciabatta', 'integrale', 'segale'],
+    cal: 265, p: 9.0, f: 3.2, c: 49.0, k: 115, mg: 25, ca: 52, fe: 1.6, zn: 0.9, vitA: 0, vitC: 0, vitD: 0
   },
 
   // ═══════════════════════════════════════════════════
@@ -111,6 +115,10 @@ const FOOD_DATABASE = [
   {
     keywords: ['salmone', 'salmon'],
     cal: 208, p: 20.0, f: 13.0, c: 0.0, k: 363, mg: 29, ca: 12, fe: 0.3, zn: 0.6, vitA: 40, vitC: 0, vitD: 11.0
+  },
+  {
+    keywords: ['tonno'],
+    cal: 116, p: 26.0, f: 1.0, c: 0.0, k: 252, mg: 50, ca: 16, fe: 1.0, zn: 0.6, vitA: 655, vitC: 0, vitD: 4.9
   },
 
   // ═══════════════════════════════════════════════════
@@ -145,7 +153,7 @@ function findFoodProfile(text) {
 function parseQuantityGrams(text) {
   const lower = text.toLowerCase();
 
-  // Match ml or g directly: "350g", "200ml", "50g", "7g"
+  // Match ml or g directly: "110g", "50g", "26g", "200ml"
   const directMatch = lower.match(/(\d+[\.,]?\d*)\s*(g|ml|gr|grammi|millilitri)/i);
   if (directMatch) {
     return parseFloat(directMatch[1].replace(',', '.'));
@@ -154,11 +162,11 @@ function parseQuantityGrams(text) {
   // Household measures
   if (lower.includes('cucchiaino') || lower.includes('cucchiaini')) {
     const num = lower.match(/(\d+)\s*cucchiain/i);
-    return (num ? parseInt(num[1], 10) : 1) * 7; // 1 cucchiaino = 7g
+    return (num ? parseInt(num[1], 10) : 1) * 7;
   }
   if (lower.includes('cucchiaio') || lower.includes('cucchiai')) {
     const num = lower.match(/(\d+)\s*cucchia/i);
-    return (num ? parseInt(num[1], 10) : 1) * 15; // 1 cucchiaio = 15g
+    return (num ? parseInt(num[1], 10) : 1) * 15;
   }
 
   // Unit count: "1 kiwi", "1 caffe", "2 uova"
@@ -166,11 +174,9 @@ function parseQuantityGrams(text) {
   if (unitMatch) {
     const count = parseInt(unitMatch[1], 10);
     const unitName = unitMatch[2].toLowerCase();
-    if (unitName.includes('kiwi')) return count * 70; // 1 kiwi = 70g
-    if (unitName.includes('caffe') || unitName.includes('espresso')) return count * 30; // 30ml
-    if (unitName.includes('uov')) return count * 50; // 1 uovo = 50g
-    if (unitName.includes('mela')) return count * 150;
-    if (unitName.includes('banana')) return count * 120;
+    if (unitName.includes('kiwi')) return count * 70;
+    if (unitName.includes('caffe') || unitName.includes('espresso')) return count * 30;
+    if (unitName.includes('uov')) return count * 50;
   }
 
   return 100;
@@ -189,7 +195,7 @@ export function parseScientificBreakdown(description, totalCal = 0, totalPro = 0
   // Split description into individual food items
   const rawItems = text.split(/,|\+|\se\s|\scon\s/i).map(s => s.trim()).filter(Boolean);
 
-  // Filter out any leftover header words like "Colazione"
+  // Filter out any leftover header words like "Colazione", "Pranzo"
   const items = rawItems.filter(itemStr => {
     const clean = itemStr.toLowerCase();
     return !['colazione', 'pranzo', 'cena', 'spuntino', 'pasto'].includes(clean);

@@ -15,6 +15,28 @@ const getGeminiApiKey = () => {
   return '';
 };
 
+function detectMealType(text, timestamp) {
+  const lower = (text || '').toLowerCase();
+
+  if (lower.includes('pranzo')) return 'Pranzo';
+  if (lower.includes('cena')) return 'Cena';
+  if (lower.includes('colazione')) return 'Colazione';
+  if (lower.includes('spuntino') || lower.includes('merenda')) return 'Spuntino';
+
+  let hour = new Date().getHours();
+  if (timestamp && timestamp.includes(':')) {
+    const timePart = timestamp.split(' ')[1] || timestamp;
+    const h = parseInt(timePart.split(':')[0], 10);
+    if (!isNaN(h)) hour = h;
+  }
+
+  if (hour >= 5 && hour < 12) return 'Colazione';
+  if (hour >= 12 && hour < 16) return 'Pranzo';
+  if (hour >= 16 && hour < 19) return 'Spuntino';
+  if (hour >= 19 && hour < 24) return 'Cena';
+  return 'Spuntino';
+}
+
 export async function parseUserInput(rawText, currentLogs = { food: [], training: [], trading: [] }, lang = 'IT') {
   const text = rawText.trim();
   const now = new Date();
@@ -175,6 +197,8 @@ async function callGeminiApi(userText, currentLogs, timestamp, lang = 'IT') {
     ? 'IMPORTANT: Respond strictly in ENGLISH for all text messages, headings, and explanations.'
     : 'IMPORTANTE: Rispondi rigorosamente in ITALIANO per tutti i messaggi di testo, intestazioni e spiegazioni.';
 
+  const detectedType = detectMealType(userText, timestamp);
+
   const prompt = `Sei l'AI Assistant personale di Ivan per Nutrizione (Food), Allenamento (Training), Trading e Archivio Storico.
 ${langInstruction}
 
@@ -198,7 +222,7 @@ Schema JSON Cibo:
   "category": "food",
   "type": "log_entry",
   "log": {
-    "mealType": "${lang === 'EN' ? 'Breakfast' : 'Colazione'}" | "${lang === 'EN' ? 'Lunch' : 'Pranzo'}" | "${lang === 'EN' ? 'Dinner' : 'Cena'}" | "${lang === 'EN' ? 'Snack' : 'Spuntino'}",
+    "mealType": "${detectedType}",
     "description": "descrizione",
     "calories": 460,
     "protein": 64,
@@ -230,6 +254,7 @@ Richiesta dell'utente Ivan: "${userText}"`;
   if (parsed.log) {
     parsed.log.id = (parsed.category === 'food' ? 'f_' : parsed.category === 'training' ? 't_' : 'tr_') + Date.now();
     parsed.log.timestamp = timestamp;
+    parsed.log.mealType = detectedType;
   }
 
   return parsed;
@@ -238,6 +263,7 @@ Richiesta dell'utente Ivan: "${userText}"`;
 function fallbackLocalParser(text, timestamp, lang = 'IT') {
   const isEn = lang === 'EN';
   const breakdown = parseScientificBreakdown(text);
+  const detectedType = detectMealType(text, timestamp);
 
   const cal = breakdown.reduce((s, i) => s + (i.calories || 0), 0);
   const pro = Math.round(breakdown.reduce((s, i) => s + (i.protein || 0), 0) * 10) / 10;
@@ -264,7 +290,7 @@ function fallbackLocalParser(text, timestamp, lang = 'IT') {
     log: {
       id: 'f_' + Date.now(),
       timestamp,
-      mealType: isEn ? 'Breakfast' : 'Colazione',
+      mealType: detectedType,
       description: text,
       calories: cal,
       protein: pro,

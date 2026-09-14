@@ -1,9 +1,9 @@
 import { parseScientificBreakdown } from '../src/utils/nutritionEngine.js';
 
-const testInput = "Colazione: 350g di yogurt greco 0%, 50g di frutti di bosco, Un cucchiaino abbondante di burro di 100% mandorle pelate, 200ml di latte di mandorle senza zuccheri senza olio, 1 kiwi gold, 1 caffe espresso, Cannella, Dolcificante zero";
+const testInput = "pranzo: 110g di pasta, 50g di passata di pomodoro senza alcun additivo, 26g di grana grattugiato, caffe espresso";
 const breakdown = parseScientificBreakdown(testInput);
 
-console.log("=== SCIENTIFIC BREAKDOWN TEST RESULT ===");
+console.log("=== SCIENTIFIC BREAKDOWN TEST RESULT FOR PRANZO ===");
 console.log(JSON.stringify(breakdown, null, 2));
 
 const totalCal = breakdown.reduce((s, i) => s + i.calories, 0);
