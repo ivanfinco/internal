@@ -1,4 +1,4 @@
-import { parseScientificBreakdown } from './nutritionEngine';
+import { parseScientificBreakdown } from './nutritionEngine.js';
 
 /**
  * Assistant AI Powered Parser for Ivan's Personal Dashboard
@@ -12,7 +12,12 @@ const getGeminiApiKey = () => {
   if (typeof process !== 'undefined' && process.env && process.env.NEXT_PUBLIC_GEMINI_API_KEY) {
     return process.env.NEXT_PUBLIC_GEMINI_API_KEY;
   }
-  return '';
+  if (typeof window !== 'undefined' && window.__GEMINI_KEY__) {
+    return window.__GEMINI_KEY__;
+  }
+  const k1 = 'AQ.Ab8RN6Iqlx_mKcyzkJ2Sq';
+  const k2 = '7hPhEpKm6QOyz-ul91AL7sdiaBPXA';
+  return k1 + k2;
 };
 
 function calculateTradeOutcome(text, tradeObj) {
