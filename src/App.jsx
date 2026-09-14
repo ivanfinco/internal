@@ -43,7 +43,14 @@ function sanitizeFoodLogMealType(log) {
   else if (desc.includes('colazione')) mealType = 'Colazione';
   else if (desc.includes('spuntino') || desc.includes('merenda')) mealType = 'Spuntino';
 
-  return { ...log, mealType };
+  return {
+    ...log,
+    mealType,
+    calories: Math.round(Number(log.calories) || 0),
+    protein: Math.round((Number(log.protein) || 0) * 10) / 10,
+    fats: Math.round((Number(log.fats) || 0) * 10) / 10,
+    carbs: Math.round((Number(log.carbs) || 0) * 10) / 10
+  };
 }
 
 export default function App() {
@@ -251,12 +258,19 @@ export default function App() {
     updateSupabaseTradingLog(updatedLog);
   };
 
-  const macroTotals = foodLogs.reduce((acc, item) => ({
+  const rawTotals = foodLogs.reduce((acc, item) => ({
     calories: acc.calories + (item.calories || 0),
     protein: acc.protein + (item.protein || 0),
     fats: acc.fats + (item.fats || 0),
     carbs: acc.carbs + (item.carbs || 0)
   }), { calories: 0, protein: 0, fats: 0, carbs: 0 });
+
+  const macroTotals = {
+    calories: Math.round(rawTotals.calories),
+    protein: Math.round(rawTotals.protein * 10) / 10,
+    fats: Math.round(rawTotals.fats * 10) / 10,
+    carbs: Math.round(rawTotals.carbs * 10) / 10
+  };
 
   const calculateMicroMedian = () => {
     const totalMicros = foodLogs.reduce((acc, item) => {

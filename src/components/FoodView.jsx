@@ -38,7 +38,6 @@ export default function FoodView({ foodLogs, macroTotals, targets, microMedianPe
   // Guarantee realistic scientific breakdown for ANY log
   const getLogBreakdown = (log) => {
     if (log.ingredientsBreakdown && log.ingredientsBreakdown.length > 0) {
-      // Check if breakdown was even-divided dummy data, if so recalculate with scientific engine
       const first = log.ingredientsBreakdown[0];
       const isEvenDummy = log.ingredientsBreakdown.length > 1 && log.ingredientsBreakdown.every(i => i.calories === first.calories && i.protein === first.protein);
       if (!isEvenDummy) return log.ingredientsBreakdown;
@@ -60,9 +59,9 @@ export default function FoodView({ foodLogs, macroTotals, targets, microMedianPe
       mealType,
       description,
       calories: Number(calories),
-      protein: Number(protein),
-      fats: Number(fats),
-      carbs: Number(carbs),
+      protein: Math.round(Number(protein) * 10) / 10,
+      fats: Math.round(Number(fats) * 10) / 10,
+      carbs: Math.round(Number(carbs) * 10) / 10,
       micros: {
         vitaminA: 200,
         vitaminC: 30,
@@ -132,9 +131,9 @@ export default function FoodView({ foodLogs, macroTotals, targets, microMedianPe
       mealType: editMealType,
       description: editDescription,
       calories: Number(editCalories),
-      protein: Number(editProtein),
-      fats: Number(editFats),
-      carbs: Number(editCarbs),
+      protein: Math.round(Number(editProtein) * 10) / 10,
+      fats: Math.round(Number(editFats) * 10) / 10,
+      carbs: Math.round(Number(editCarbs) * 10) / 10,
       micros: editMicros
     };
 
@@ -165,14 +164,14 @@ export default function FoodView({ foodLogs, macroTotals, targets, microMedianPe
   }, { vitaminA: 0, vitaminC: 0, vitaminD: 0, iron: 0, calcium: 0, zinc: 0, magnesium: 0, potassium: 0 });
 
   const microList = [
-    { key: 'vitaminA', label: 'Vitamina A', val: totalMicros.vitaminA, target: targets.micros.vitaminA, unit: 'mcg' },
-    { key: 'vitaminC', label: 'Vitamina C', val: totalMicros.vitaminC, target: targets.micros.vitaminC, unit: 'mg' },
-    { key: 'vitaminD', label: 'Vitamina D', val: totalMicros.vitaminD, target: targets.micros.vitaminD, unit: 'mcg' },
-    { key: 'iron', label: 'Ferro (Fe)', val: totalMicros.iron, target: targets.micros.iron, unit: 'mg' },
-    { key: 'calcium', label: 'Calcio (Ca)', val: totalMicros.calcium, target: targets.micros.calcium, unit: 'mg' },
-    { key: 'zinc', label: 'Zinco (Zn)', val: totalMicros.zinc, target: targets.micros.zinc, unit: 'mg' },
-    { key: 'magnesium', label: 'Magnesio (Mg)', val: totalMicros.magnesium, target: targets.micros.magnesium, unit: 'mg' },
-    { key: 'potassium', label: 'Potassio (K)', val: totalMicros.potassium, target: targets.micros.potassium, unit: 'mg' }
+    { key: 'vitaminA', label: 'Vitamina A', val: Math.round(totalMicros.vitaminA), target: targets.micros.vitaminA, unit: 'mcg' },
+    { key: 'vitaminC', label: 'Vitamina C', val: Math.round(totalMicros.vitaminC), target: targets.micros.vitaminC, unit: 'mg' },
+    { key: 'vitaminD', label: 'Vitamina D', val: Math.round(totalMicros.vitaminD * 10) / 10, target: targets.micros.vitaminD, unit: 'mcg' },
+    { key: 'iron', label: 'Ferro (Fe)', val: Math.round(totalMicros.iron * 10) / 10, target: targets.micros.iron, unit: 'mg' },
+    { key: 'calcium', label: 'Calcio (Ca)', val: Math.round(totalMicros.calcium), target: targets.micros.calcium, unit: 'mg' },
+    { key: 'zinc', label: 'Zinco (Zn)', val: Math.round(totalMicros.zinc * 10) / 10, target: targets.micros.zinc, unit: 'mg' },
+    { key: 'magnesium', label: 'Magnesio (Mg)', val: Math.round(totalMicros.magnesium), target: targets.micros.magnesium, unit: 'mg' },
+    { key: 'potassium', label: 'Potassio (K)', val: Math.round(totalMicros.potassium), target: targets.micros.potassium, unit: 'mg' }
   ];
 
   const getNutrientProvenance = (nutrientKey) => {
@@ -207,7 +206,7 @@ export default function FoodView({ foodLogs, macroTotals, targets, microMedianPe
     });
 
     provenanceList.sort((a, b) => b.amount - a.amount);
-    const grandTotal = provenanceList.reduce((sum, item) => sum + item.amount, 0);
+    const grandTotal = Math.round(provenanceList.reduce((sum, item) => sum + item.amount, 0) * 10) / 10;
 
     return { provenanceList, grandTotal };
   };
@@ -348,6 +347,17 @@ export default function FoodView({ foodLogs, macroTotals, targets, microMedianPe
               const micros = log.micros || {};
               const ingredients = getLogBreakdown(log);
 
+              const descLower = (log.description || '').toLowerCase();
+              const displayMealType = descLower.includes('pranzo') ? 'Pranzo'
+                : descLower.includes('cena') ? 'Cena'
+                : descLower.includes('spuntino') || descLower.includes('merenda') ? 'Spuntino'
+                : descLower.includes('colazione') ? 'Colazione'
+                : (log.mealType || 'Pranzo');
+
+              const logPro = Math.round((log.protein || 0) * 10) / 10;
+              const logFat = Math.round((log.fats || 0) * 10) / 10;
+              const logCarb = Math.round((log.carbs || 0) * 10) / 10;
+
               return (
                 <div 
                   key={log.id}
@@ -357,7 +367,7 @@ export default function FoodView({ foodLogs, macroTotals, targets, microMedianPe
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
                         <span className="px-2.5 py-0.5 text-xs font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-lg">
-                          {log.mealType}
+                          {displayMealType}
                         </span>
                         <span className="text-xs text-zinc-400 font-mono flex items-center gap-1">
                           <Clock className="w-3 h-3" /> {log.timestamp}
@@ -370,9 +380,9 @@ export default function FoodView({ foodLogs, macroTotals, targets, microMedianPe
 
                     <div className="flex items-center gap-3 text-xs font-mono shrink-0">
                       <div className="text-right">
-                        <span className="text-amber-500 font-bold block">{log.calories} kcal</span>
+                        <span className="text-amber-500 font-bold block">{Math.round(log.calories)} kcal</span>
                         <span className="text-zinc-400 text-[11px]">
-                          🥩 {log.protein}g P | 🥑 {log.fats}g F | 🍞 {log.carbs}g C
+                          🥩 {logPro}g P | 🥑 {logFat}g F | 🍞 {logCarb}g C
                         </span>
                       </div>
 
@@ -417,13 +427,13 @@ export default function FoodView({ foodLogs, macroTotals, targets, microMedianPe
                       {/* Explicit Sentence Provenance Explanation */}
                       <div className="p-3 bg-white dark:bg-zinc-800 rounded-2xl border border-emerald-500/20 space-y-1.5 text-[11px] text-zinc-700 dark:text-zinc-300 font-sans leading-relaxed">
                         <div>
-                          🥩 <strong>Proteine ({log.protein}g)</strong>: {ingredients.map(i => `${i.protein}g da ${i.name}`).join(', ')}.
+                          🥩 <strong>Proteine ({logPro}g)</strong>: {ingredients.map(i => `${Math.round((i.protein||0)*10)/10}g da ${i.name}`).join(', ')}.
                         </div>
                         <div>
-                          🍞 <strong>Carboidrati ({log.carbs}g)</strong>: {ingredients.map(i => `${i.carbs}g da ${i.name}`).join(', ')}.
+                          🍞 <strong>Carboidrati ({logCarb}g)</strong>: {ingredients.map(i => `${Math.round((i.carbs||0)*10)/10}g da ${i.name}`).join(', ')}.
                         </div>
                         <div>
-                          🥑 <strong>Grassi ({log.fats}g)</strong>: {ingredients.map(i => `${i.fats}g da ${i.name}`).join(', ')}.
+                          🥑 <strong>Grassi ({logFat}g)</strong>: {ingredients.map(i => `${Math.round((i.fats||0)*10)/10}g da ${i.name}`).join(', ')}.
                         </div>
                         <div>
                           🥦 <strong>Potassio ({micros.potassium || 0}mg) & Magnesio ({micros.magnesium || 0}mg)</strong>: Provengono principalmente da {ingredients.filter(i => (i.micros?.potassium || 0) > 30).map(i => `${i.name} (${i.micros?.potassium || 0}mg)`).join(', ') || ingredients.map(i => i.name).join(', ')}.
@@ -448,12 +458,12 @@ export default function FoodView({ foodLogs, macroTotals, targets, microMedianPe
                             {ingredients.map((ing, idx) => (
                               <tr key={idx} className="hover:bg-zinc-50 dark:hover:bg-zinc-700/30">
                                 <td className="py-2 px-3 font-bold text-zinc-900 dark:text-white font-sans">{ing.name}</td>
-                                <td className="py-2 px-3 font-bold text-amber-500">{ing.calories} kcal</td>
-                                <td className="py-2 px-3 text-emerald-500">{ing.protein}g</td>
-                                <td className="py-2 px-3 text-blue-500">{ing.fats}g</td>
-                                <td className="py-2 px-3 text-purple-500">{ing.carbs}g</td>
-                                <td className="py-2 px-3 text-teal-400">{ing.micros?.potassium || 0}mg</td>
-                                <td className="py-2 px-3 text-indigo-400">{ing.micros?.magnesium || 0}mg</td>
+                                <td className="py-2 px-3 font-bold text-amber-500">{Math.round(ing.calories)} kcal</td>
+                                <td className="py-2 px-3 text-emerald-500">{Math.round((ing.protein||0)*10)/10}g</td>
+                                <td className="py-2 px-3 text-blue-500">{Math.round((ing.fats||0)*10)/10}g</td>
+                                <td className="py-2 px-3 text-purple-500">{Math.round((ing.carbs||0)*10)/10}g</td>
+                                <td className="py-2 px-3 text-teal-400">{Math.round(ing.micros?.potassium || 0)}mg</td>
+                                <td className="py-2 px-3 text-indigo-400">{Math.round(ing.micros?.magnesium || 0)}mg</td>
                               </tr>
                             ))}
                           </tbody>
@@ -464,19 +474,19 @@ export default function FoodView({ foodLogs, macroTotals, targets, microMedianPe
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 font-mono text-[11px]">
                         <div className="p-2.5 rounded-xl bg-white dark:bg-zinc-800 border border-zinc-200/60 dark:border-zinc-700">
                           <span className="text-zinc-400 block">Calorie Totali</span>
-                          <span className="font-bold text-amber-500">{log.calories} kcal</span>
+                          <span className="font-bold text-amber-500">{Math.round(log.calories)} kcal</span>
                         </div>
                         <div className="p-2.5 rounded-xl bg-white dark:bg-zinc-800 border border-zinc-200/60 dark:border-zinc-700">
                           <span className="text-zinc-400 block">Proteine Totali</span>
-                          <span className="font-bold text-emerald-500">{log.protein}g</span>
+                          <span className="font-bold text-emerald-500">{logPro}g</span>
                         </div>
                         <div className="p-2.5 rounded-xl bg-white dark:bg-zinc-800 border border-zinc-200/60 dark:border-zinc-700">
                           <span className="text-zinc-400 block">Grassi Totali</span>
-                          <span className="font-bold text-blue-500">{log.fats}g</span>
+                          <span className="font-bold text-blue-500">{logFat}g</span>
                         </div>
                         <div className="p-2.5 rounded-xl bg-white dark:bg-zinc-800 border border-zinc-200/60 dark:border-zinc-700">
                           <span className="text-zinc-400 block">Carboidrati Totali</span>
-                          <span className="font-bold text-purple-500">{log.carbs}g</span>
+                          <span className="font-bold text-purple-500">{logCarb}g</span>
                         </div>
                       </div>
 
