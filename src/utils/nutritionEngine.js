@@ -13,8 +13,8 @@ const FOOD_DATABASE = [
     cal: 0, p: 0, f: 0, c: 0, k: 0, mg: 0, ca: 0, fe: 0, zn: 0, vitA: 0, vitC: 0, vitD: 0
   },
   {
-    keywords: ['cannella', 'spezie', 'origano', 'basilico', 'pepe', 'sale', 'rosmarino', 'prezzemolo'],
-    cal: 2, p: 0.1, f: 0, c: 0.5, k: 10, mg: 2, ca: 10, fe: 0.1, zn: 0, vitA: 5, vitC: 2.5, vitD: 0
+    keywords: ['cannella', 'spezie', 'origano', 'basilico', 'pepe', 'sale', 'rosmarino', 'prezzemolo', 'zenzero'],
+    cal: 25, p: 1.8, f: 0.8, c: 4.5, k: 130, mg: 18, ca: 16, fe: 0.6, zn: 0.3, vitA: 5, vitC: 5.0, vitD: 0
   },
 
   // ═══════════════════════════════════════════════════
@@ -38,7 +38,15 @@ const FOOD_DATABASE = [
   },
 
   // ═══════════════════════════════════════════════════
-  // FRUTTA FRESCA & AGRUMI (RICCHI DI VITAMINA C & MICROS)
+  // CACAO, CIOCCOLATO & INGREDIENTI DA COLAZIONE
+  // ═══════════════════════════════════════════════════
+  {
+    keywords: ['cacao amaro', 'cacao in polvere', 'cacao'],
+    cal: 228, p: 19.6, f: 13.7, c: 14.0, k: 1524, mg: 499, ca: 128, fe: 13.9, zn: 6.8, vitA: 0, vitC: 0, vitD: 0
+  },
+
+  // ═══════════════════════════════════════════════════
+  // FRUTTA FRESCA & AGRUMI
   // ═══════════════════════════════════════════════════
   {
     keywords: ['arancia', 'arance', 'agrumi', 'succo d\'arancia', 'succo arancia', 'spremuta'],
@@ -53,7 +61,7 @@ const FOOD_DATABASE = [
     cal: 61, p: 1.1, f: 0.5, c: 14.7, k: 312, mg: 17, ca: 34, fe: 0.3, zn: 0.1, vitA: 4, vitC: 92.7, vitD: 0
   },
   {
-    keywords: ['fragole', 'fragola', 'frutti di bosco', 'mirtilli', 'lamponi', 'fregate'],
+    keywords: ['frutti di bosco', 'mirtilli', 'fragole', 'fragola', 'lamponi', 'fregate'],
     cal: 32, p: 0.7, f: 0.3, c: 7.7, k: 153, mg: 13, ca: 16, fe: 0.4, zn: 0.1, vitA: 1, vitC: 58.8, vitD: 0
   },
   {
@@ -70,7 +78,7 @@ const FOOD_DATABASE = [
   },
 
   // ═══════════════════════════════════════════════════
-  // VERDURE & ORTAGGI (RICCHI DI VITAMINA C, A, FERRO, POTASSIO)
+  // VERDURE & ORTAGGI
   // ═══════════════════════════════════════════════════
   {
     keywords: ['peperoni', 'peperone', 'peperoncino'],
@@ -113,7 +121,7 @@ const FOOD_DATABASE = [
     cal: 614, p: 21.0, f: 53.8, c: 8.8, k: 748, mg: 279, ca: 269, fe: 3.7, zn: 3.3, vitA: 0, vitC: 0, vitD: 0
   },
   {
-    keywords: ['mandorle', 'crema di mandorle', 'burro di mandorle', 'mandorla'],
+    keywords: ['mandorle', 'crema di mandorle', 'burro di mandorle', 'mandorla', 'crema mandorle'],
     cal: 614, p: 21.0, f: 53.0, c: 19.0, k: 748, mg: 279, ca: 269, fe: 3.7, zn: 3.3, vitA: 0, vitC: 0, vitD: 0
   },
   {
@@ -141,7 +149,7 @@ const FOOD_DATABASE = [
     cal: 59, p: 10.0, f: 0.4, c: 3.6, k: 141, mg: 11, ca: 110, fe: 0.1, zn: 0.5, vitA: 5, vitC: 0.8, vitD: 0.1
   },
   {
-    keywords: ['yogurt greco', 'yogurt proteico'],
+    keywords: ['yogurt greco', 'yogurt proteico', 'yogurt'],
     cal: 97, p: 9.0, f: 5.0, c: 4.0, k: 141, mg: 11, ca: 110, fe: 0.1, zn: 0.5, vitA: 26, vitC: 0.8, vitD: 0.1
   },
   {
@@ -241,7 +249,33 @@ function parseQuantityGrams(text) {
     if (unitName.includes('limone')) return count * 60;
   }
 
-  return 100;
+  // Realistic default portions when no quantity is explicitly specified
+  if (lower.includes('crema') || lower.includes('burro') || lower.includes('peanut butter') || lower.includes('marmellata') || lower.includes('miele') || lower.includes('nutella')) {
+    return 15; // 15g (1 tablespoon) default for nut butter/spreads
+  }
+  if (lower.includes('olio')) {
+    return 10; // 10g (1 tablespoon) default for oil
+  }
+  if (lower.includes('cacao') || lower.includes('zenzero') || lower.includes('spezie') || lower.includes('cannella')) {
+    return 10; // 10g default for cocoa/spices
+  }
+  if (lower.includes('latte di mandorla') || lower.includes('latte di mandorle')) {
+    return 50; // 50ml splash
+  }
+  if (lower.includes('caffè') || lower.includes('caffe') || lower.includes('espresso')) {
+    return 30; // 30ml shot
+  }
+  if (lower.includes('frutti di bosco') || lower.includes('mirtilli') || lower.includes('fragole') || lower.includes('lamponi')) {
+    return 80; // 80g portion
+  }
+  if (lower.includes('kiwi')) {
+    return 70; // 70g (1 kiwi)
+  }
+  if (lower.includes('yogurt') || lower.includes('skyr')) {
+    return 125; // 125g (1 cup)
+  }
+
+  return 40; // Default portion size
 }
 
 const DEFAULT_PROFILE = {
@@ -262,6 +296,8 @@ export function parseScientificBreakdown(description, totalCal = 0, totalPro = 0
     const clean = itemStr.toLowerCase();
     return !['colazione', 'pranzo', 'cena', 'spuntino', 'pasto'].includes(clean);
   });
+
+  if (items.length === 0) return [];
 
   const itemProfiles = items.map(itemStr => {
     const weightGrams = parseQuantityGrams(itemStr);
@@ -287,29 +323,37 @@ export function parseScientificBreakdown(description, totalCal = 0, totalPro = 0
     };
   });
 
-  const sumCal = itemProfiles.reduce((s, i) => s + i.cal, 0);
+  const sumCal = itemProfiles.reduce((s, i) => s + i.cal, 0) || 1;
+  const sumPro = itemProfiles.reduce((s, i) => s + i.pro, 0) || 1;
+  const sumFat = itemProfiles.reduce((s, i) => s + i.fat, 0) || 1;
+  const sumCarb = itemProfiles.reduce((s, i) => s + i.carb, 0) || 1;
 
-  // Use raw scientific sum directly unless totalCal is within 15% of sumCal
-  const isInputRealistic = totalCal > 0 && Math.abs(totalCal - sumCal) / (sumCal || 1) < 0.15;
+  const targetCal = Number(totalCal) > 0 ? Number(totalCal) : sumCal;
+  const targetPro = Number(totalPro) > 0 ? Number(totalPro) : sumPro;
+  const targetFat = Number(totalFat) > 0 ? Number(totalFat) : sumFat;
+  const targetCarb = Number(totalCarb) > 0 ? Number(totalCarb) : sumCarb;
 
-  const targetCal = isInputRealistic ? totalCal : Math.round(sumCal);
-  const scale = isInputRealistic ? (targetCal / (sumCal || 1)) : 1;
+  // Strict proportional scaling factors to match meal totals
+  const scaleCal = targetCal / sumCal;
+  const scalePro = targetPro / sumPro;
+  const scaleFat = targetFat / sumFat;
+  const scaleCarb = targetCarb / sumCarb;
 
   return itemProfiles.map(item => ({
     name: item.name,
-    calories: Math.round(item.cal * scale),
-    protein: Math.round((item.pro * scale) * 10) / 10,
-    fats: Math.round((item.fat * scale) * 10) / 10,
-    carbs: Math.round((item.carb * scale) * 10) / 10,
+    calories: Math.round(item.cal * scaleCal),
+    protein: Math.round((item.pro * scalePro) * 10) / 10,
+    fats: Math.round((item.fat * scaleFat) * 10) / 10,
+    carbs: Math.round((item.carb * scaleCarb) * 10) / 10,
     micros: {
-      potassium: Math.round(item.k),
-      magnesium: Math.round(item.mg),
-      calcium: Math.round(item.ca),
-      iron: Math.round(item.fe * 10) / 10,
-      zinc: Math.round(item.zn * 10) / 10,
-      vitaminA: Math.round(item.vitA),
-      vitaminC: Math.round(item.vitC * 10) / 10,
-      vitaminD: Math.round(item.vitD * 10) / 10
+      potassium: Math.round(item.k * scaleCal),
+      magnesium: Math.round(item.mg * scaleCal),
+      calcium: Math.round(item.ca * scaleCal),
+      iron: Math.round((item.fe * scaleCal) * 10) / 10,
+      zinc: Math.round((item.zn * scaleCal) * 10) / 10,
+      vitaminA: Math.round(item.vitA * scaleCal),
+      vitaminC: Math.round((item.vitC * scaleCal) * 10) / 10,
+      vitaminD: Math.round((item.vitD * scaleCal) * 10) / 10
     }
   }));
 }
