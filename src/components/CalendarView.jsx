@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Calendar as CalendarIcon, Filter, Utensils, Dumbbell, TrendingUp } from 'lucide-react';
 import RealCalendar from './RealCalendar';
+import { getLocalDateStr } from '../utils/dateUtils';
 
 export default function CalendarView({ logs }) {
-  const [selectedDate, setSelectedDate] = useState(null);
+  const [selectedDate, setSelectedDate] = useState(() => getLocalDateStr());
 
   const filteredFood = selectedDate
     ? logs.food.filter(l => l.timestamp.startsWith(selectedDate))

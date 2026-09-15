@@ -54,7 +54,7 @@ export default function ProfileModal({ profile = {}, onSave, onClose, lang = 'IT
     try {
       const birth = new Date(dobStr);
       if (isNaN(birth.getTime())) return 31;
-      const today = new Date(2026, 8, 14);
+      const today = new Date();
       let age = today.getFullYear() - birth.getFullYear();
       const m = today.getMonth() - birth.getMonth();
       if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {

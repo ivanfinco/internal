@@ -1,3 +1,7 @@
+import { getLocalDateStr } from '../utils/dateUtils';
+
+const today = getLocalDateStr();
+
 export const DEFAULT_TARGETS = {
   calories: 2500,
   protein: 180,
@@ -18,7 +22,7 @@ export const DEFAULT_TARGETS = {
 export const INITIAL_FOOD_LOGS = [
   {
     id: 'f1',
-    timestamp: '2026-09-14 08:30',
+    timestamp: `${today} 08:30`,
     mealType: 'Colazione',
     description: '3 uova intere strapazzate con 2 fette di pane di segale e 100g yogurt greco',
     calories: 475,
@@ -64,7 +68,7 @@ export const INITIAL_FOOD_LOGS = [
   },
   {
     id: 'f2',
-    timestamp: '2026-09-14 12:45',
+    timestamp: `${today} 12:45`,
     mealType: 'Pranzo',
     description: '200g petto di pollo ai ferri, 120g riso basmati, 150g broccoli a vapore con 15g olio evo',
     calories: 933,
@@ -118,7 +122,7 @@ export const INITIAL_FOOD_LOGS = [
   },
   {
     id: 'f3',
-    timestamp: '2026-09-13 20:15',
+    timestamp: `${today} 20:15`,
     mealType: 'Cena',
     description: '200g filetto di salmone, 200g patate, 150g insalata mista con 10g olio evo',
     calories: 690,
@@ -175,7 +179,7 @@ export const INITIAL_FOOD_LOGS = [
 export const INITIAL_TRAINING_LOGS = [
   {
     id: 't1',
-    timestamp: '2026-09-14 10:30',
+    timestamp: `${today} 10:30`,
     title: 'Workout Gambe & Addome',
     exercises: [
       { name: 'Squat con bilanciere', sets: 4, reps: 8, weight: 110, note: 'Ottima profondità' },
@@ -189,7 +193,7 @@ export const INITIAL_TRAINING_LOGS = [
   },
   {
     id: 't2',
-    timestamp: '2026-09-12 17:00',
+    timestamp: `${today} 17:00`,
     title: 'Workout Petto & Spalle',
     exercises: [
       { name: 'Panca piana bilanciere', sets: 4, reps: 8, weight: 85, note: 'Fermo al petto pulito' },
@@ -206,7 +210,7 @@ export const INITIAL_TRAINING_LOGS = [
 export const INITIAL_TRADING_LOGS = [
   {
     id: 'tr1',
-    timestamp: '2026-09-14 11:15',
+    timestamp: `${today} 11:15`,
     ticker: 'MNQ1!',
     type: 'BUY',
     entryPrice: 19500,
@@ -219,7 +223,7 @@ export const INITIAL_TRADING_LOGS = [
   },
   {
     id: 'tr2',
-    timestamp: '2026-09-13 15:40',
+    timestamp: `${today} 15:40`,
     ticker: 'NQ1!',
     type: 'BUY',
     entryPrice: 19400,
@@ -232,7 +236,7 @@ export const INITIAL_TRADING_LOGS = [
   },
   {
     id: 'tr3',
-    timestamp: '2026-09-11 19:20',
+    timestamp: `${today} 19:20`,
     ticker: 'ES1!',
     type: 'SELL',
     entryPrice: 5600,

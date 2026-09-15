@@ -7,8 +7,12 @@ export default function RealCalendar({
   section = 'all', // 'food' | 'training' | 'trading' | 'all'
   logs = { food: [], training: [], trading: [] }
 }) {
+  const realTodayObj = new Date();
+  const todayStr = formatDateStr(realTodayObj);
+  const todayFormattedShort = realTodayObj.toLocaleDateString('it-IT', { day: 'numeric', month: 'short' });
+
   const [currentMonthDate, setCurrentMonthDate] = useState(() => {
-    return new Date(2026, 8, 1); // Sept 2026
+    return new Date(realTodayObj.getFullYear(), realTodayObj.getMonth(), 1);
   });
 
   // Zoomed Day Modal State
@@ -33,8 +37,9 @@ export default function RealCalendar({
   };
 
   const setToday = () => {
-    setCurrentMonthDate(new Date(2026, 8, 1));
-    onSelectDate('2026-09-14');
+    const now = new Date();
+    setCurrentMonthDate(new Date(now.getFullYear(), now.getMonth(), 1));
+    onSelectDate(formatDateStr(now));
   };
 
   const firstDayOfMonth = new Date(year, month, 1);
@@ -128,7 +133,7 @@ export default function RealCalendar({
             onClick={setToday}
             className="px-3 py-1.5 text-xs font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 rounded-xl transition-all"
           >
-            Oggi (14 Set)
+            Oggi ({todayFormattedShort})
           </button>
           
           {selectedDate && (
@@ -168,7 +173,7 @@ export default function RealCalendar({
       <div className="grid grid-cols-7 gap-1.5">
         {calendarDays.map((cell, idx) => {
           const isSelected = selectedDate === cell.dateStr;
-          const isToday = cell.dateStr === '2026-09-14';
+          const isToday = cell.dateStr === todayStr;
 
           const hasFood = foodByDate[cell.dateStr];
           const hasTraining = trainingByDate[cell.dateStr];

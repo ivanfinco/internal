@@ -1,19 +1,14 @@
 import React, { useState } from 'react';
-import { TrendingUp, ArrowUpRight, ArrowDownRight, Clock, Plus, Trash2, Edit2, ShieldCheck, DollarSign, Activity, Filter, Check, X, Sparkles, Send, PieChart, BarChart2, Award, Zap } from 'lucide-react';
+import { TrendingUp, ArrowUpRight, ArrowDownRight, Clock, Plus, Trash2, ShieldCheck, DollarSign, Activity, Filter, Check, X, Sparkles, PieChart, BarChart2, Award, Zap } from 'lucide-react';
 import RealCalendar from './RealCalendar';
-import { parseTradeEditInstruction } from '../utils/aiParser';
+import { getLocalDateStr, getLocalTimestampStr } from '../utils/dateUtils';
 
-export default function TradingView({ tradingLogs = [], onAddTradingLog, onDeleteTradingLog, onUpdateTradingLog, lang = 'IT' }) {
+export default function TradingView({ tradingLogs = [], onAddTradingLog, onDeleteTradingLog, lang = 'IT' }) {
   const isEn = lang === 'EN';
   const safeLogs = Array.isArray(tradingLogs) ? tradingLogs : [];
 
   const [showAddModal, setShowAddModal] = useState(false);
-  const [editingTrade, setEditingTrade] = useState(null);
-  const [selectedDate, setSelectedDate] = useState(null);
-
-  // AI Prompt edit state
-  const [aiEditPrompt, setAiEditPrompt] = useState('');
-  const [isAiProcessing, setIsAiProcessing] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(() => getLocalDateStr());
 
   // Manual Add Form State
   const [ticker, setTicker] = useState('MNQ1!');
@@ -22,16 +17,6 @@ export default function TradingView({ tradingLogs = [], onAddTradingLog, onDelet
   const [takeProfit, setTakeProfit] = useState(19800);
   const [stopLoss, setStopLoss] = useState(19400);
   const [notes, setNotes] = useState('Breakout 5 micro contratti MNQ');
-
-  // Edit Modal Form State
-  const [editTicker, setEditTicker] = useState('');
-  const [editType, setEditType] = useState('BUY');
-  const [editEntryPrice, setEditEntryPrice] = useState(0);
-  const [editTakeProfit, setEditTakeProfit] = useState(0);
-  const [editStopLoss, setEditStopLoss] = useState(0);
-  const [editStatus, setEditStatus] = useState('APERTO');
-  const [editPnl, setEditPnl] = useState('$0');
-  const [editNotes, setEditNotes] = useState('');
 
   // ═══════════════════════════════════════════════════
   // REAL STATISTICAL CALCULATORS FOR TRADING & FUTURES
@@ -74,8 +59,7 @@ export default function TradingView({ tradingLogs = [], onAddTradingLog, onDelet
     e.preventDefault();
     if (!ticker.trim()) return;
 
-    const now = new Date();
-    const timestamp = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+    const timestamp = getLocalTimestampStr();
 
     const newLog = {
       id: 'tr_' + Date.now(),
@@ -94,71 +78,6 @@ export default function TradingView({ tradingLogs = [], onAddTradingLog, onDelet
     setSelectedDate(null);
     onAddTradingLog(newLog);
     setShowAddModal(false);
-  };
-
-  const handleStartEdit = (tr) => {
-    setEditingTrade(tr);
-    setAiEditPrompt('');
-    setEditTicker(tr.ticker || '');
-    setEditType(tr.type || 'BUY');
-    setEditEntryPrice(tr.entryPrice || 0);
-    setEditTakeProfit(tr.takeProfit || 0);
-    setEditStopLoss(tr.stopLoss || 0);
-    setEditStatus(tr.status || 'APERTO');
-    setEditPnl(tr.pnl || '$0');
-    setEditNotes(tr.notes || '');
-  };
-
-  const handleApplyAiEdit = async (e) => {
-    e.preventDefault();
-    if (!aiEditPrompt.trim() || !editingTrade || isAiProcessing) return;
-
-    setIsAiProcessing(true);
-    try {
-      const updatedByAi = await parseTradeEditInstruction(aiEditPrompt, editingTrade, lang);
-      if (updatedByAi) {
-        setEditTicker(updatedByAi.ticker || editTicker);
-        setEditType(updatedByAi.type || editType);
-        setEditEntryPrice(updatedByAi.entryPrice || editEntryPrice);
-        setEditTakeProfit(updatedByAi.takeProfit || editTakeProfit);
-        setEditStopLoss(updatedByAi.stopLoss || editStopLoss);
-        setEditStatus(updatedByAi.status || editStatus);
-        setEditPnl(updatedByAi.pnl || editPnl);
-        setEditNotes(updatedByAi.notes || editNotes);
-        setAiEditPrompt('');
-
-        if (onUpdateTradingLog) {
-          onUpdateTradingLog(updatedByAi);
-        }
-        setEditingTrade(null);
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsAiProcessing(false);
-    }
-  };
-
-  const handleSaveEdit = (e) => {
-    e.preventDefault();
-    if (!editingTrade) return;
-
-    const updated = {
-      ...editingTrade,
-      ticker: (editTicker || '').toUpperCase(),
-      type: editType,
-      entryPrice: Number(editEntryPrice) || 0,
-      takeProfit: Number(editTakeProfit) || 0,
-      stopLoss: Number(editStopLoss) || 0,
-      status: editStatus,
-      pnl: editPnl,
-      notes: editNotes
-    };
-
-    if (onUpdateTradingLog) {
-      onUpdateTradingLog(updated);
-    }
-    setEditingTrade(null);
   };
 
   const filteredLogs = selectedDate
@@ -371,14 +290,6 @@ export default function TradingView({ tradingLogs = [], onAddTradingLog, onDelet
                       </td>
                       <td className="py-3.5 px-3 sm:px-4 text-right space-x-1 whitespace-nowrap">
                         <button
-                          onClick={() => handleStartEdit(tr)}
-                          className="px-2 py-1 text-[11px] font-bold text-purple-600 dark:text-purple-400 bg-purple-500/10 hover:bg-purple-500/20 rounded-xl transition-all inline-flex items-center gap-1"
-                          title="Modifica trade con Assistant AI"
-                        >
-                          <Sparkles className="w-3 h-3" />
-                          <span>Modifica AI</span>
-                        </button>
-                        <button
                           onClick={() => onDeleteTradingLog(tr.id)}
                           className="p-1 text-zinc-400 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-all"
                           title="Elimina trade"
@@ -479,161 +390,6 @@ export default function TradingView({ tradingLogs = [], onAddTradingLog, onDelet
                   className="flex-1 py-2.5 sm:py-3 bg-purple-600 text-white font-bold rounded-xl text-xs sm:text-sm"
                 >
                   Salva Trade
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Edit Trade Modal with Natural Language AI Instruction Bar */}
-      {editingTrade && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 bg-zinc-950/85 backdrop-blur-md overflow-y-auto">
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-5 sm:p-8 max-w-lg w-full shadow-2xl space-y-4 sm:space-y-5 my-auto max-h-[90vh] overflow-y-auto">
-            
-            <div className="flex justify-between items-center border-b border-zinc-100 dark:border-zinc-800 pb-3">
-              <div>
-                <span className="text-[10px] sm:text-xs font-bold text-purple-500 uppercase tracking-widest block">Assistant AI Real-time Edit</span>
-                <h3 className="text-base sm:text-lg font-bold text-zinc-900 dark:text-white font-mono">
-                  Modifica Trade [{editingTrade.ticker || ''}]
-                </h3>
-              </div>
-              <button onClick={() => setEditingTrade(null)} className="p-1.5 text-zinc-400 hover:text-white rounded-xl">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* AI Prompt Box */}
-            <div className="bg-gradient-to-r from-purple-500/10 via-indigo-500/10 to-teal-500/10 border border-purple-500/30 rounded-2xl p-3 sm:p-4 space-y-2">
-              <label className="block text-xs font-bold text-purple-700 dark:text-purple-300 flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-purple-500 animate-spin" />
-                <span>{isEn ? 'Instruct Assistant AI to modify this trade:' : 'Comunica ad Assistant AI la modifica:'}</span>
-              </label>
-
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={aiEditPrompt}
-                  onChange={(e) => setAiEditPrompt(e.target.value)}
-                  placeholder={isEn ? "e.g. '5 MNQ contracts hit Full TP +$3,000'" : "es. '5 contratti MNQ hanno preso Full TP +3000$'"}
-                  className="flex-1 p-2.5 sm:p-3 bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs font-medium dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-                <button
-                  type="button"
-                  onClick={handleApplyAiEdit}
-                  disabled={!aiEditPrompt.trim() || isAiProcessing}
-                  className="px-3 sm:px-4 py-2.5 sm:py-3 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-bold rounded-xl text-xs flex items-center gap-1 shrink-0 shadow-md shadow-purple-500/20"
-                >
-                  {isAiProcessing ? <span className="animate-pulse">AI...</span> : <Send className="w-3.5 h-3.5" />}
-                </button>
-              </div>
-            </div>
-
-            <form onSubmit={handleSaveEdit} className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-zinc-500 mb-1">Ticker / Asset</label>
-                  <input
-                    type="text"
-                    required
-                    value={editTicker}
-                    onChange={(e) => setEditTicker(e.target.value)}
-                    className="w-full p-2.5 sm:p-3 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs sm:text-sm font-mono font-bold dark:text-white uppercase"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-zinc-500 mb-1">Tipo Ordine</label>
-                  <select
-                    value={editType}
-                    onChange={(e) => setEditType(e.target.value)}
-                    className="w-full p-2.5 sm:p-3 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs sm:text-sm font-medium dark:text-white"
-                  >
-                    <option value="BUY">BUY / LONG</option>
-                    <option value="SELL">SELL / SHORT</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-2">
-                <div>
-                  <label className="block text-xs font-semibold text-zinc-500 mb-1">Entry ($)</label>
-                  <input
-                    type="number"
-                    step="any"
-                    value={editEntryPrice}
-                    onChange={(e) => setEditEntryPrice(e.target.value)}
-                    className="w-full p-2 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs font-mono dark:text-white"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-zinc-500 mb-1">TP ($)</label>
-                  <input
-                    type="number"
-                    step="any"
-                    value={editTakeProfit}
-                    onChange={(e) => setEditTakeProfit(e.target.value)}
-                    className="w-full p-2 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs font-mono text-emerald-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-zinc-500 mb-1">SL ($)</label>
-                  <input
-                    type="number"
-                    step="any"
-                    value={editStopLoss}
-                    onChange={(e) => setEditStopLoss(e.target.value)}
-                    className="w-full p-2 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs font-mono text-rose-500"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-zinc-500 mb-1">Stato Posizione</label>
-                  <select
-                    value={editStatus}
-                    onChange={(e) => setEditStatus(e.target.value)}
-                    className="w-full p-2.5 sm:p-3 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs sm:text-sm font-medium dark:text-white"
-                  >
-                    <option value="APERTO">APERTO</option>
-                    <option value="CHIUSO">CHIUSO</option>
-                    <option value="ANNULLATO">ANNULLATO</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-zinc-500 mb-1">PnL / Risultato</label>
-                  <input
-                    type="text"
-                    value={editPnl}
-                    onChange={(e) => setEditPnl(e.target.value)}
-                    placeholder="es. +$3,000"
-                    className="w-full p-2.5 sm:p-3 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs sm:text-sm font-mono font-bold text-emerald-500 dark:text-emerald-400"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-zinc-500 mb-1">Note & Rationale</label>
-                <textarea
-                  value={editNotes}
-                  onChange={(e) => setEditNotes(e.target.value)}
-                  className="w-full p-3 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs sm:text-sm font-medium dark:text-white h-20"
-                />
-              </div>
-
-              <div className="flex gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setEditingTrade(null)}
-                  className="flex-1 py-2.5 sm:py-3 bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-200 font-bold rounded-xl text-xs sm:text-sm"
-                >
-                  Annulla
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 py-2.5 sm:py-3 bg-purple-600 text-white font-bold rounded-xl text-xs sm:text-sm flex items-center justify-center gap-1"
-                >
-                  <Check className="w-4 h-4" /> Salva
                 </button>
               </div>
             </form>

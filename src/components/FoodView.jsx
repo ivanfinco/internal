@@ -1,22 +1,17 @@
 import React, { useState } from 'react';
-import { Utensils, Flame, Plus, Award, Calendar, Clock, Trash2, PieChart, Filter, ChevronDown, ChevronUp, Info, Sparkles, Edit2, Send, X, Check, Search, BarChart3, ListFilter, AlignLeft } from 'lucide-react';
+import { Utensils, Flame, Plus, Award, Calendar, Clock, Trash2, PieChart, Filter, ChevronDown, ChevronUp, Info, Sparkles, X, Check, Search, BarChart3, ListFilter, AlignLeft } from 'lucide-react';
 import RealCalendar from './RealCalendar';
-import { parseFoodEditInstruction } from '../utils/aiParser';
 import { parseScientificBreakdown } from '../utils/nutritionEngine';
+import { getLocalTimestampStr, getLocalDateStr } from '../utils/dateUtils';
 
-export default function FoodView({ foodLogs, macroTotals, targets, microMedianPercent, onAddFoodLog, onDeleteFoodLog, onUpdateFoodLog, lang = 'IT' }) {
+export default function FoodView({ foodLogs, macroTotals, targets, microMedianPercent, onAddFoodLog, onDeleteFoodLog, lang = 'IT' }) {
   const isEn = lang === 'EN';
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedNutrient, setSelectedNutrient] = useState('protein');
   const [showProvenanceModal, setShowProvenanceModal] = useState(false);
 
-  const [editingFood, setEditingFood] = useState(null);
-  const [selectedDate, setSelectedDate] = useState(null);
+  const [selectedDate, setSelectedDate] = useState(() => getLocalDateStr());
   const [expandedLogId, setExpandedLogId] = useState(null);
-
-  // AI Prompt edit state
-  const [aiEditPrompt, setAiEditPrompt] = useState('');
-  const [isAiProcessing, setIsAiProcessing] = useState(false);
 
   // Manual Add Form State
   const [mealType, setMealType] = useState('Pranzo');
@@ -25,15 +20,6 @@ export default function FoodView({ foodLogs, macroTotals, targets, microMedianPe
   const [protein, setProtein] = useState(35);
   const [fats, setFats] = useState(15);
   const [carbs, setCarbs] = useState(55);
-
-  // Edit Modal Form State
-  const [editMealType, setEditMealType] = useState('Pranzo');
-  const [editDescription, setEditDescription] = useState('');
-  const [editCalories, setEditCalories] = useState(0);
-  const [editProtein, setEditProtein] = useState(0);
-  const [editFats, setEditFats] = useState(0);
-  const [editCarbs, setEditCarbs] = useState(0);
-  const [editMicros, setEditMicros] = useState({});
 
   // Guarantee realistic scientific breakdown for ANY log
   const getLogBreakdown = (log) => {
@@ -50,8 +36,7 @@ export default function FoodView({ foodLogs, macroTotals, targets, microMedianPe
     e.preventDefault();
     if (!description.trim()) return;
 
-    const now = new Date();
-    const timestamp = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+    const timestamp = getLocalTimestampStr();
 
     const newLog = {
       id: 'f_' + Date.now(),
@@ -79,70 +64,6 @@ export default function FoodView({ foodLogs, macroTotals, targets, microMedianPe
     onAddFoodLog(newLog);
     setDescription('');
     setShowAddModal(false);
-  };
-
-  const handleStartEdit = (log) => {
-    setEditingFood(log);
-    setAiEditPrompt('');
-    setEditMealType(log.mealType || 'Pranzo');
-    setEditDescription(log.description || '');
-    setEditCalories(log.calories || 0);
-    setEditProtein(log.protein || 0);
-    setEditFats(log.fats || 0);
-    setEditCarbs(log.carbs || 0);
-    setEditMicros(log.micros || {});
-  };
-
-  const handleApplyAiEdit = async (e) => {
-    e.preventDefault();
-    if (!aiEditPrompt.trim() || !editingFood || isAiProcessing) return;
-
-    setIsAiProcessing(true);
-    try {
-      const updatedByAi = await parseFoodEditInstruction(aiEditPrompt, editingFood, lang);
-      if (updatedByAi) {
-        setEditMealType(updatedByAi.mealType || editMealType);
-        setEditDescription(updatedByAi.description || editDescription);
-        setEditCalories(updatedByAi.calories || editCalories);
-        setEditProtein(updatedByAi.protein || editProtein);
-        setEditFats(updatedByAi.fats || editFats);
-        setEditCarbs(updatedByAi.carbs || editCarbs);
-        if (updatedByAi.micros) setEditMicros(updatedByAi.micros);
-        setAiEditPrompt('');
-
-        if (onUpdateFoodLog) {
-          onUpdateFoodLog(updatedByAi);
-        }
-        setEditingFood(null);
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsAiProcessing(false);
-    }
-  };
-
-  const handleSaveEdit = (e) => {
-    e.preventDefault();
-    if (!editingFood) return;
-
-    const updated = {
-      ...editingFood,
-      mealType: editMealType,
-      description: editDescription,
-      calories: Number(editCalories),
-      protein: Math.round(Number(editProtein) * 10) / 10,
-      fats: Math.round(Number(editFats) * 10) / 10,
-      carbs: Math.round(Number(editCarbs) * 10) / 10,
-      micros: editMicros
-    };
-
-    updated.ingredientsBreakdown = parseScientificBreakdown(editDescription, editCalories, editProtein, editFats, editCarbs, editMicros);
-
-    if (onUpdateFoodLog) {
-      onUpdateFoodLog(updated);
-    }
-    setEditingFood(null);
   };
 
   const filteredLogs = selectedDate
@@ -393,15 +314,6 @@ export default function FoodView({ foodLogs, macroTotals, targets, microMedianPe
                         <Sparkles className="w-3.5 h-3.5" />
                         <span>{isExpanded ? 'Nascondi Provenienza' : 'Provenienza Nutrienti'}</span>
                         {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                      </button>
-
-                      <button
-                        onClick={() => handleStartEdit(log)}
-                        className="px-2.5 py-1.5 text-xs font-bold text-purple-600 dark:text-purple-400 bg-purple-500/10 hover:bg-purple-500/20 rounded-xl transition-all inline-flex items-center gap-1 font-sans"
-                        title="Modifica pasto"
-                      >
-                        <Edit2 className="w-3.5 h-3.5" />
-                        <span>Modifica</span>
                       </button>
 
                       <button
@@ -678,134 +590,6 @@ export default function FoodView({ foodLogs, macroTotals, targets, microMedianPe
                   className="flex-1 py-3 bg-emerald-500 text-white font-bold rounded-xl text-sm"
                 >
                   Salva Pasto
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Edit Food Modal */}
-      {editingFood && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-zinc-950/85 backdrop-blur-md overflow-y-auto">
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl space-y-5 my-auto max-h-[90vh] overflow-y-auto">
-            
-            <div className="flex justify-between items-center border-b border-zinc-100 dark:border-zinc-800 pb-3">
-              <div>
-                <span className="text-xs font-bold text-purple-500 uppercase tracking-widest block">Assistant AI Edit</span>
-                <h3 className="text-lg font-bold text-zinc-900 dark:text-white">
-                  Modifica Pasto [{editingFood.description}]
-                </h3>
-              </div>
-              <button onClick={() => setEditingFood(null)} className="p-2 text-zinc-400 hover:text-white rounded-xl">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* AI Prompt Box */}
-            <div className="bg-gradient-to-r from-purple-500/10 via-indigo-500/10 to-teal-500/10 border border-purple-500/30 rounded-2xl p-4 space-y-2">
-              <label className="block text-xs font-bold text-purple-700 dark:text-purple-300 flex items-center gap-1.5">
-                <Sparkles className="w-4 h-4 text-purple-500 animate-spin" />
-                <span>{isEn ? 'Instruct Assistant AI to modify this meal:' : 'Comunica ad Assistant AI la modifica del pasto:'}</span>
-              </label>
-
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={aiEditPrompt}
-                  onChange={(e) => setAiEditPrompt(e.target.value)}
-                  placeholder={isEn ? "e.g. 'Replace rice with 80g quinoa and add 100g chicken breast'" : "es. 'Sostituisci il riso con 80g di farro e aggiungi 100g di pollo'"}
-                  className="flex-1 p-3 bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs font-medium dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-                <button
-                  type="button"
-                  onClick={handleApplyAiEdit}
-                  disabled={!aiEditPrompt.trim() || isAiProcessing}
-                  className="px-4 py-3 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-bold rounded-xl text-xs flex items-center gap-1 shrink-0 shadow-md shadow-purple-500/20"
-                >
-                  {isAiProcessing ? <span className="animate-pulse">AI...</span> : <Send className="w-3.5 h-3.5" />}
-                </button>
-              </div>
-            </div>
-
-            <form onSubmit={handleSaveEdit} className="space-y-3">
-              <div>
-                <label className="block text-xs font-semibold text-zinc-500 mb-1">Tipo Pasto</label>
-                <select
-                  value={editMealType}
-                  onChange={(e) => setEditMealType(e.target.value)}
-                  className="w-full p-3 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-sm font-medium dark:text-white"
-                >
-                  <option value="Colazione">Colazione</option>
-                  <option value="Pranzo">Pranzo</option>
-                  <option value="Cena">Cena</option>
-                  <option value="Spuntino">Spuntino</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-zinc-500 mb-1">Descrizione Cibo</label>
-                <input
-                  type="text"
-                  required
-                  value={editDescription}
-                  onChange={(e) => setEditDescription(e.target.value)}
-                  className="w-full p-3 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-sm font-medium dark:text-white"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-zinc-500 mb-1">Calorie (kcal)</label>
-                  <input
-                    type="number"
-                    value={editCalories}
-                    onChange={(e) => setEditCalories(e.target.value)}
-                    className="w-full p-3 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-sm font-medium text-amber-500 font-mono"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-zinc-500 mb-1">Proteine (g)</label>
-                  <input
-                    type="number"
-                    value={editProtein}
-                    onChange={(e) => setEditProtein(e.target.value)}
-                    className="w-full p-3 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-sm font-medium text-emerald-500 font-mono"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-zinc-500 mb-1">Grassi (g)</label>
-                  <input
-                    type="number"
-                    value={editFats}
-                    onChange={(e) => setEditFats(e.target.value)}
-                    className="w-full p-3 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-sm font-medium text-blue-500 font-mono"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-zinc-500 mb-1">Carboidrati (g)</label>
-                  <input
-                    type="number"
-                    value={editCarbs}
-                    onChange={(e) => setEditCarbs(e.target.value)}
-                    className="w-full p-3 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 text-sm font-medium text-purple-500 font-mono"
-                  />
-                </div>
-              </div>
-
-              <div className="flex gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setEditingFood(null)}
-                  className="flex-1 py-3 bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-200 font-bold rounded-xl text-sm"
-                >
-                  Annulla
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 py-3 bg-emerald-500 text-white font-bold rounded-xl text-sm flex items-center justify-center gap-1"
-                >
-                  <Check className="w-4 h-4" /> Conferma & Salva
                 </button>
               </div>
             </form>

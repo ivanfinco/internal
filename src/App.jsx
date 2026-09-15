@@ -27,6 +27,7 @@ import {
   subscribeToRealtimeChanges
 } from './services/supabaseDb';
 
+import { getLocalDateStr, migrateLegacySeedTimestamp } from './utils/dateUtils';
 import { 
   DEFAULT_TARGETS, 
   INITIAL_FOOD_LOGS, 
@@ -35,16 +36,12 @@ import {
 } from './constants/initialData';
 
 function sanitizeFoodLogMealType(log) {
-  if (!log) return {
-    id: 'f_' + Date.now(),
-    timestamp: '2026-09-14 12:00',
-    mealType: 'Pranzo',
-    description: 'Pasto',
-    calories: 400,
-    protein: 30,
-    fats: 10,
-    carbs: 45
-  };
+  if (!log) return null;
+
+  // Clean up any previously generated phantom/dummy pasto entries
+  if (log.description === 'Pasto' && Number(log.calories) === 400 && Number(log.protein) === 30 && Number(log.fats) === 10 && Number(log.carbs) === 45) {
+    return null;
+  }
 
   const desc = (log.description || '').toLowerCase();
   let mealType = log.mealType || 'Pranzo';
@@ -56,6 +53,7 @@ function sanitizeFoodLogMealType(log) {
 
   return {
     ...log,
+    timestamp: migrateLegacySeedTimestamp(log.timestamp),
     mealType,
     calories: Math.round(Number(log.calories) || 0),
     protein: Math.round((Number(log.protein) || 0) * 10) / 10,
@@ -150,16 +148,17 @@ export default function App() {
         if (Array.isArray(logs) && logs.length > 0) {
           return logs.filter(Boolean).map(item => {
             const sanitized = sanitizeFoodLogMealType(item);
+            if (!sanitized) return null;
             return {
               ...sanitized,
               ingredientsBreakdown: parseScientificBreakdown(sanitized.description, sanitized.calories, sanitized.protein, sanitized.fats, sanitized.carbs, sanitized.micros || {})
             };
-          });
+          }).filter(Boolean);
         }
       }
     } catch (e) {}
 
-    return INITIAL_FOOD_LOGS.map(sanitizeFoodLogMealType);
+    return INITIAL_FOOD_LOGS.map(sanitizeFoodLogMealType).filter(Boolean);
   });
 
   const [trainingLogs, setTrainingLogs] = useState(() => {
@@ -167,11 +166,19 @@ export default function App() {
       const saved = localStorage.getItem('ivan_training_logs');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed;
+        if (Array.isArray(parsed)) {
+          return parsed.map(item => ({
+            ...item,
+            timestamp: migrateLegacySeedTimestamp(item?.timestamp)
+          }));
+        }
       }
     } catch (e) {}
 
-    return INITIAL_TRAINING_LOGS;
+    return INITIAL_TRAINING_LOGS.map(item => ({
+      ...item,
+      timestamp: migrateLegacySeedTimestamp(item?.timestamp)
+    }));
   });
 
   const [tradingLogs, setTradingLogs] = useState(() => {
@@ -179,11 +186,19 @@ export default function App() {
       const saved = localStorage.getItem('ivan_trading_logs');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed;
+        if (Array.isArray(parsed)) {
+          return parsed.map(item => ({
+            ...item,
+            timestamp: migrateLegacySeedTimestamp(item?.timestamp)
+          }));
+        }
       }
     } catch (e) {}
 
-    return INITIAL_TRADING_LOGS;
+    return INITIAL_TRADING_LOGS.map(item => ({
+      ...item,
+      timestamp: migrateLegacySeedTimestamp(item?.timestamp)
+    }));
   });
 
   // Load from Supabase on initial mount
@@ -202,16 +217,27 @@ export default function App() {
         if (food && Array.isArray(food) && food.length > 0) {
           const sanitizedFood = food.filter(Boolean).map(item => {
             const sanitized = sanitizeFoodLogMealType(item);
+            if (!sanitized) return null;
             return {
               ...sanitized,
               ingredientsBreakdown: parseScientificBreakdown(sanitized.description, sanitized.calories, sanitized.protein, sanitized.fats, sanitized.carbs, sanitized.micros || {})
             };
-          });
+          }).filter(Boolean);
           setFoodLogs(sanitizedFood);
         }
 
-        if (train && Array.isArray(train) && train.length > 0) setTrainingLogs(train);
-        if (trade && Array.isArray(trade) && trade.length > 0) setTradingLogs(trade);
+        if (train && Array.isArray(train) && train.length > 0) {
+          setTrainingLogs(train.map(item => ({
+            ...item,
+            timestamp: migrateLegacySeedTimestamp(item?.timestamp)
+          })));
+        }
+        if (trade && Array.isArray(trade) && trade.length > 0) {
+          setTradingLogs(trade.map(item => ({
+            ...item,
+            timestamp: migrateLegacySeedTimestamp(item?.timestamp)
+          })));
+        }
       } catch (err) {
         console.warn("Supabase initial load notice (fallback to local state):", err.message);
       }
@@ -281,6 +307,7 @@ export default function App() {
     if (!newLog) return;
     if (category === 'food') {
       const sanitized = sanitizeFoodLogMealType(newLog);
+      if (!sanitized) return;
       const withBreakdown = {
         ...sanitized,
         ingredientsBreakdown: parseScientificBreakdown(sanitized.description, sanitized.calories, sanitized.protein, sanitized.fats, sanitized.carbs, sanitized.micros || {})
@@ -303,6 +330,7 @@ export default function App() {
 
   const handleUpdateFoodLog = (updatedLog) => {
     const sanitized = sanitizeFoodLogMealType(updatedLog);
+    if (!sanitized) return;
     const withBreakdown = {
       ...sanitized,
       ingredientsBreakdown: parseScientificBreakdown(sanitized.description, sanitized.calories, sanitized.protein, sanitized.fats, sanitized.carbs, sanitized.micros || {})
@@ -328,7 +356,7 @@ export default function App() {
   };
 
   // Macro Totals for Today with strict 1-decimal rounding (Fix JS floating point precision zeros)
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = getLocalDateStr();
   const safeFoodLogs = Array.isArray(foodLogs) ? foodLogs.filter(Boolean) : [];
   const safeTrainingLogs = Array.isArray(trainingLogs) ? trainingLogs.filter(Boolean) : [];
   const safeTradingLogs = Array.isArray(tradingLogs) ? tradingLogs.filter(Boolean) : [];

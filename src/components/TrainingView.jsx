@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { Dumbbell, Calendar, Clock, Zap, Plus, Trash2, Award, Activity, Filter } from 'lucide-react';
 import RealCalendar from './RealCalendar';
+import { getLocalDateStr, getLocalTimestampStr } from '../utils/dateUtils';
 
 export default function TrainingView({ trainingLogs, onAddTrainingLog, onDeleteTrainingLog }) {
   const [showAddModal, setShowAddModal] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(null);
+  const [selectedDate, setSelectedDate] = useState(() => getLocalDateStr());
 
   const [title, setTitle] = useState('Workout Petto & Spalle');
   const [feeling, setFeeling] = useState('🔥 In gran forma');
@@ -18,8 +19,7 @@ export default function TrainingView({ trainingLogs, onAddTrainingLog, onDeleteT
     e.preventDefault();
     if (!title.trim()) return;
 
-    const now = new Date();
-    const timestamp = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+    const timestamp = getLocalTimestampStr();
 
     const newLog = {
       id: 't_' + Date.now(),
